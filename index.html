@@ -36,26 +36,43 @@
     <style>
         body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         
-        /* Custom Range Slider */
+        /* Custom Range Slider (Webkit) */
         input[type='range'] { -webkit-appearance: none; background: transparent; }
         input[type='range']::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 18px; /* Smaller thumb */
+            width: 18px; 
             height: 18px;
-            /* Use CSS variable for dynamic color, default to Matcha */
             background: var(--thumb-color, #77B42B); 
             border-radius: 50%;
             border: 3px solid white;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             cursor: pointer;
-            transition: background 0.2s ease;
+            transition: background 0.1s ease;
             margin-top: -5px; 
         }
-        input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.1); }
         input[type='range']::-webkit-slider-runnable-track {
             width: 100%;
-            height: 6px; /* Thinner track */
+            height: 6px; 
+            cursor: pointer;
+            background: #f5f5f4;
+            border-radius: 9999px;
+        }
+
+        /* Custom Range Slider (Firefox) */
+        input[type='range']::-moz-range-thumb {
+            width: 18px; 
+            height: 18px;
+            background: var(--thumb-color, #77B42B); 
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: background 0.1s ease;
+        }
+        input[type='range']::-moz-range-track {
+            width: 100%;
+            height: 6px; 
             cursor: pointer;
             background: #f5f5f4;
             border-radius: 9999px;
@@ -65,12 +82,11 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Only fade in on initial load, removed from recurring items to stop flashing */
         .fade-in-init { animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .pie-chart {
-            width: 60px; /* Smaller chart */
+            width: 60px;
             height: 60px;
             border-radius: 50%;
             background: #f5f5f4;
@@ -85,14 +101,25 @@
             backdrop-filter: blur(4px);
         }
 
-        /* Intro Toast Animation */
-        #intro-toast {
-            animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        #intro-toast { animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideIn { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        /* Calendar Styles */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .calendar-day { 
+            aspect-ratio: 1; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 0.75rem; 
+            border-radius: 0.5rem; 
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        @keyframes slideIn {
-            from { transform: translateY(100px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
+        .calendar-day:hover:not(.active) { background-color: #f5f5f4; }
+        .calendar-day.active { background-color: #77B42B; color: white; font-weight: bold; }
+        .calendar-day.today { border: 1px solid #77B42B; color: #77B42B; }
+        .calendar-day.empty { pointer-events: none; }
     </style>
 </head>
 <body class="bg-[#FDFCF8] text-stone-800 font-sans min-h-screen relative selection:bg-matcha-200 selection:text-matcha-600 pb-20">
@@ -116,39 +143,24 @@
     <div id="app" class="relative z-10 opacity-0 transition-opacity duration-500">
         
         <!-- Header -->
-        <header class="sticky top-2 z-40 mx-4 sm:mx-8 mb-6 transition-all">
-            <div class="bg-white/80 backdrop-blur-xl border border-white/40 px-5 py-3 rounded-[1.5rem] shadow-lg shadow-stone-200/5 flex items-center justify-between max-w-4xl mx-auto">
+        <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-white/60 shadow-sm shadow-stone-200/5 mb-6">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="p-2 bg-gradient-to-br from-matcha-200 to-matcha-100 rounded-xl shadow-inner">
                         <i data-lucide="brain" class="text-matcha-600 w-5 h-5"></i>
                     </div>
                     <div>
                         <h1 class="text-base font-black text-stone-800 leading-none tracking-tight">OJT Pulse</h1>
-                        <!-- Date Navigation -->
-                        <div class="flex items-center gap-1 mt-0.5">
-                            <button id="btn-prev-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors">
-                                <i data-lucide="chevron-left" class="w-3 h-3"></i>
-                            </button>
-                            <div class="relative group cursor-pointer">
-                                <div id="current-date-display" class="text-[10px] font-bold text-stone-500 uppercase tracking-widest hover:text-matcha-600 transition-colors">
-                                    Today
-                                </div>
-                                <input type="date" id="date-picker-input" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                            </div>
-                            <button id="btn-next-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors">
-                                <i data-lucide="chevron-right" class="w-3 h-3"></i>
-                            </button>
-                        </div>
+                        <p class="text-[10px] text-stone-400 font-bold uppercase tracking-widest mt-0.5" id="header-date">Today</p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <!-- Data Button (Changed Icon to Download) -->
+                <div class="flex items-center gap-2">
                     <button id="btn-data-modal" class="p-2 hover:bg-stone-100 rounded-xl text-stone-400 hover:text-sky-500 transition-colors" title="Backup & Data">
                         <i data-lucide="download" class="w-5 h-5"></i>
                     </button>
                     <!-- Clock -->
-                    <div id="big-clock" class="text-lg sm:text-2xl font-black text-stone-700 tracking-tight bg-white/50 px-4 py-1.5 rounded-xl border border-white/60 shadow-sm flex items-center gap-1.5 hidden sm:flex">
+                    <div id="big-clock" class="text-lg font-black text-stone-700 tracking-tight bg-white/50 px-3 py-1.5 rounded-xl border border-white/60 shadow-sm flex items-center gap-1.5 hidden sm:flex">
                         <span>--:--</span>
                         <span class="text-xs text-stone-400 font-medium">AM</span>
                     </div>
@@ -156,24 +168,110 @@
             </div>
         </header>
 
-        <!-- Main Content Area -->
-        <main class="max-w-4xl mx-auto px-6 sm:px-8 space-y-6 relative z-10 fade-in-init">
+        <!-- Main Layout: Grid -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 fade-in-init grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
-            <!-- Welcome Section (Compact) -->
-            <section class="bg-gradient-to-br from-[#f2f7ec] via-[#fdfcf8] to-[#ffffff] p-6 rounded-[2rem] shadow-xl shadow-stone-200/50 border border-white/60 relative overflow-hidden group">
-                <div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <!-- Sidebar (Right Side on Desktop, Top on Mobile) -->
+            <aside class="lg:col-span-4 space-y-6 lg:order-2 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto no-scrollbar">
+                
+                <!-- 1. OJT Progress Widget -->
+                <div class="bg-white/70 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-white/60 relative group">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="p-1.5 bg-matcha-100 rounded-lg text-matcha-600">
+                                <i data-lucide="briefcase" class="w-4 h-4"></i>
+                            </div>
+                            <h3 class="font-bold text-stone-700 text-sm">OJT Progress</h3>
+                        </div>
+                        <button id="btn-settings" class="text-stone-300 hover:text-stone-500 transition-colors">
+                            <i data-lucide="settings-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mb-2 flex justify-between items-end">
+                        <span class="text-3xl font-black text-stone-800" id="progress-percent">0%</span>
+                        <span class="text-xs text-stone-500 font-medium mb-1" id="progress-hours">0 / 0 hrs</span>
+                    </div>
+                    <div class="w-full bg-stone-100 rounded-full h-2.5 overflow-hidden">
+                        <div id="progress-bar" class="bg-matcha-500 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                    <p class="text-[10px] text-stone-400 mt-2 font-medium" id="progress-days">Day 0 of Internship</p>
+                </div>
+
+                <!-- 2. Mini Calendar Widget -->
+                <div class="bg-white/70 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-white/60">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-stone-700 text-sm" id="cal-month-year">...</h3>
+                        <div class="flex gap-1">
+                            <button id="btn-cal-prev" class="p-1 hover:bg-stone-100 rounded text-stone-400"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                            <button id="btn-cal-next" class="p-1 hover:bg-stone-100 rounded text-stone-400"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-stone-400 font-bold mb-2">
+                        <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                    </div>
+                    <div id="mini-calendar" class="calendar-grid">
+                        <!-- JS Generated -->
+                    </div>
+                </div>
+
+                <!-- 3. Analytics Summary (Moved from Top) -->
+                <div class="bg-white/70 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-white/60 space-y-4">
+                    <h3 class="font-bold text-stone-700 text-sm mb-2 flex items-center gap-2">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-stone-400"></i> Daily Vitals
+                    </h3>
+                    
+                    <!-- Productivity -->
+                    <div class="flex items-center justify-between p-3 bg-sky-50/50 rounded-2xl border border-sky-100/50">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-white rounded-xl text-sky-500 shadow-sm"><i data-lucide="zap" class="w-4 h-4"></i></div>
+                            <span class="text-xs font-bold text-sky-700">Productivity</span>
+                        </div>
+                        <span id="stat-productivity" class="text-xl font-black text-stone-800">0%</span>
+                    </div>
+
+                    <!-- Tension -->
+                    <div class="flex items-center justify-between p-3 bg-rose-50/50 rounded-2xl border border-rose-100/50">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-white rounded-xl text-rose-500 shadow-sm"><i data-lucide="heart" class="w-4 h-4"></i></div>
+                            <span class="text-xs font-bold text-rose-700">Tension</span>
+                        </div>
+                        <div class="text-right">
+                            <span id="stat-tension" class="text-xl font-black text-stone-800">1.0</span>
+                            <div class="flex gap-0.5 justify-end" id="tension-dots"></div>
+                        </div>
+                    </div>
+
+                    <!-- Mood Pie -->
+                    <div class="flex items-center justify-between p-3 bg-violet-50/50 rounded-2xl border border-violet-100/50">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-white rounded-xl text-violet-500 shadow-sm"><i data-lucide="smile" class="w-4 h-4"></i></div>
+                            <span class="text-xs font-bold text-violet-700">Top Vibe</span>
+                        </div>
+                        <div id="mood-pie-chart" class="pie-chart w-10 h-10 shadow-sm"></div>
+                    </div>
+                </div>
+
+                <!-- 4. Scratchpad -->
+                <div class="bg-amber-50/80 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-amber-100/50">
+                    <h3 class="font-bold text-amber-800 text-sm mb-2 flex items-center gap-2">
+                        <i data-lucide="sticky-note" class="w-4 h-4 text-amber-500"></i> Quick Scratchpad
+                    </h3>
+                    <textarea id="scratchpad" class="w-full bg-white/50 border-none rounded-xl p-3 text-sm text-stone-600 placeholder-amber-800/30 focus:ring-2 focus:ring-amber-200 focus:bg-white transition-all resize-none h-32 no-scrollbar leading-relaxed" placeholder="Jot down quick notes, reminders, or coffee orders here..."></textarea>
+                </div>
+
+            </aside>
+
+            <!-- Main Timeline (Left on Desktop) -->
+            <section class="lg:col-span-8 lg:order-1 space-y-6">
+                
+                <!-- Welcome & Date Header -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                     <div>
-                        <h2 class="text-2xl font-black text-stone-800 mb-1 tracking-tight flex items-center gap-2">
-                            Hi, 
-                            <input 
-                                type="text" 
-                                id="user-display-name" 
-                                value="Student"
-                                class="bg-transparent border-b-2 border-dashed border-matcha-300 focus:border-matcha-500 outline-none text-stone-800 placeholder-stone-400 min-w-[80px] w-auto transition-colors p-0 m-0"
-                            />
-                            <span class="inline-block animate-wave origin-bottom-right">👋</span>
+                        <h2 class="text-3xl font-black text-stone-800 tracking-tight flex items-center gap-2">
+                            Hi, <input type="text" id="user-display-name" value="Student" class="bg-transparent border-b-2 border-dashed border-matcha-300 focus:border-matcha-500 outline-none text-stone-800 min-w-[80px] w-auto transition-colors p-0 m-0"/>
                         </h2>
-                        <p class="text-stone-500 font-medium text-sm max-w-xs">Let's make today productive.</p>
+                        <p class="text-stone-500 font-medium text-sm" id="roadmap-title">Let's log today.</p>
                     </div>
                     
                     <button id="btn-food" class="flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-white text-stone-600 hover:bg-stone-50 border border-stone-100 w-full sm:w-auto justify-between sm:justify-start">
@@ -186,65 +284,13 @@
                         </div>
                     </button>
                 </div>
-                <!-- Reduced icon size -->
-                <i data-lucide="wind" class="absolute -bottom-6 -right-6 text-matcha-200/30 w-32 h-32 -rotate-12"></i>
-            </section>
 
-            <!-- Analytics Grid (Compact 2x2 on Mobile) -->
-            <section class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <!-- Productivity -->
-                <div class="bg-sky-50/60 backdrop-blur-md p-4 rounded-[1.5rem] shadow-sm border border-sky-100/50 flex flex-col items-center justify-center text-center">
-                    <div class="p-2 bg-white rounded-xl text-sky-500 shadow-sm mb-2">
-                        <i data-lucide="zap" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h4 id="stat-productivity" class="text-2xl font-black text-stone-800">0%</h4>
-                        <p class="text-[9px] font-bold text-sky-400 uppercase tracking-widest">Productivity</p>
-                    </div>
-                </div>
-                
-                <!-- Tension -->
-                <div class="bg-rose-50/60 backdrop-blur-md p-4 rounded-[1.5rem] shadow-sm border border-rose-100/50 flex flex-col items-center justify-center text-center">
-                    <div class="p-2 bg-white rounded-xl text-rose-500 shadow-sm mb-2">
-                        <i data-lucide="heart" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h4 id="stat-tension" class="text-2xl font-black text-stone-800">1.0</h4>
-                        <div class="flex gap-1 justify-center mt-1" id="tension-dots"></div>
-                    </div>
-                    <p class="text-[9px] font-bold text-rose-400 uppercase tracking-widest mt-1">Tension</p>
-                </div>
-
-                <!-- Vibe (Pie Chart) -->
-                <div class="col-span-2 sm:col-span-1 bg-violet-50/60 backdrop-blur-md p-4 rounded-[1.5rem] shadow-sm border border-violet-100/50 flex flex-row sm:flex-col items-center justify-center text-center gap-4 sm:gap-0">
-                    <div class="relative flex items-center justify-center">
-                        <div id="mood-pie-chart" class="pie-chart shadow-sm"></div>
-                        <i data-lucide="smile" class="w-5 h-5 text-violet-500 absolute z-10"></i>
-                    </div>
-                    <div class="text-left sm:text-center">
-                        <h4 class="text-lg font-bold text-stone-700">Mood Mix</h4>
-                        <p class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">Daily Overview</p>
-                    </div>
+                <!-- Hourly Cards Container -->
+                <div id="timeline-container" class="space-y-4 pb-20">
+                    <!-- JS Injected -->
                 </div>
             </section>
 
-            <!-- Timeline Header -->
-            <div class="flex items-center justify-between px-2">
-                <h3 class="text-lg font-black text-stone-800 flex items-center gap-2">
-                    <span class="w-2 h-2 bg-matcha-500 rounded-full shadow-[0_0_10px_rgba(119,180,43,0.5)]"></span>
-                    <span id="roadmap-title">Roadmap</span>
-                </h3>
-            </div>
-
-            <!-- Timeline Container -->
-            <div id="timeline-container" class="pb-12 space-y-4">
-                <!-- Timeline items injected via JS -->
-            </div>
-
-            <!-- Footer -->
-            <footer class="pt-6 text-center text-stone-400 text-xs">
-                <p class="opacity-70">© <span id="year"></span> OJT Pulse</p>
-            </footer>
         </main>
     </div>
 
@@ -261,8 +307,8 @@
                     <span class="font-bold text-amber-600">Clearing your browser history/cache will delete all your progress.</span>
                 </p>
                 <div class="flex gap-2">
-                    <button onclick="dismissIntro()" class="text-xs font-bold text-stone-400 hover:text-stone-600 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors">Got it</button>
-                    <button onclick="openDataModal(); dismissIntro()" class="text-xs font-bold text-sky-600 bg-sky-50 hover:bg-sky-100 px-3 py-2 rounded-lg transition-colors">Backup Now</button>
+                    <button id="btn-intro-gotit" class="text-xs font-bold text-stone-400 hover:text-stone-600 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors">Got it</button>
+                    <button id="btn-intro-backup" class="text-xs font-bold text-sky-600 bg-sky-50 hover:bg-sky-100 px-3 py-2 rounded-lg transition-colors">Backup Now</button>
                 </div>
             </div>
         </div>
@@ -273,29 +319,27 @@
         <div class="bg-white/95 backdrop-blur-xl rounded-[2rem] p-8 w-full max-w-md shadow-2xl border border-white/50 transform scale-95 transition-transform duration-300">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-xl font-bold text-stone-800">Manage Data</h3>
-                <button onclick="toggleDataModal(false)" class="p-2 hover:bg-stone-100 rounded-full text-stone-400 transition-colors">
+                <button id="btn-close-data" class="p-2 hover:bg-stone-100 rounded-full text-stone-400 transition-colors">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
-            
             <div class="space-y-4">
                 <div class="p-4 bg-sky-50 rounded-2xl border border-sky-100">
                     <h4 class="font-bold text-sky-700 mb-1 flex items-center gap-2">
                         <i data-lucide="download" class="w-4 h-4"></i> Export Backup
                     </h4>
-                    <p class="text-xs text-sky-600/80 mb-3">Save all your logs to a JSON file. Keep this safe!</p>
+                    <p class="text-xs text-sky-600/80 mb-3">Save all your logs to a JSON file.</p>
                     <button id="btn-export-all" class="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-xl text-sm transition-colors shadow-sm shadow-sky-200">
                         Download All Data
                     </button>
                 </div>
-
                 <div class="p-4 bg-matcha-100/50 rounded-2xl border border-matcha-200">
                     <h4 class="font-bold text-matcha-600 mb-1 flex items-center gap-2">
                         <i data-lucide="upload" class="w-4 h-4"></i> Import Backup
                     </h4>
-                    <p class="text-xs text-matcha-600/80 mb-3">Restore your data from a previously exported file.</p>
+                    <p class="text-xs text-matcha-600/80 mb-3">Restore your data from a file.</p>
                     <input type="file" id="import-file" accept=".json" class="hidden" />
-                    <button onclick="document.getElementById('import-file').click()" class="w-full py-2.5 bg-white border border-matcha-300 text-matcha-600 hover:bg-matcha-50 font-bold rounded-xl text-sm transition-colors">
+                    <button id="btn-import-trigger" class="w-full py-2.5 bg-white border border-matcha-300 text-matcha-600 hover:bg-matcha-50 font-bold rounded-xl text-sm transition-colors">
                         Select File to Restore
                     </button>
                 </div>
@@ -303,451 +347,597 @@
         </div>
     </div>
 
+    <!-- OJT Settings Modal -->
+    <div id="modal-settings" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/20 backdrop-blur-md opacity-0 transition-opacity duration-300">
+        <div class="bg-white/95 backdrop-blur-xl rounded-[2rem] p-8 w-full max-w-md shadow-2xl border border-white/50 transform scale-95 transition-transform duration-300">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-stone-800">OJT Settings</h3>
+                <button id="btn-close-settings" class="p-2 hover:bg-stone-100 rounded-full text-stone-400 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-2">Start Date</label>
+                    <input type="date" id="setting-start-date" class="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-stone-700 outline-none focus:ring-2 focus:ring-matcha-400/50">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-2">Required Hours</label>
+                    <input type="number" id="setting-total-hours" placeholder="e.g. 600" class="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-stone-700 outline-none focus:ring-2 focus:ring-matcha-400/50">
+                </div>
+                <button id="btn-save-settings" class="w-full py-3 bg-matcha-500 hover:bg-matcha-600 text-white font-bold rounded-xl transition-colors shadow-lg shadow-matcha-200 mt-2">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script>
-        // --- CONSTANTS ---
-        const HOURS = [
-            "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", 
-            "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"
-        ];
-        const MOODS = [
-            { emoji: '😊', label: 'Happy', value: 'happy' },
-            { emoji: '😐', label: 'Neutral', value: 'neutral' },
-            { emoji: '😫', label: 'Stressed', value: 'stressed' },
-            { emoji: '😴', label: 'Tired', value: 'tired' },
-            { emoji: '🔥', label: 'On Fire', value: 'productive' }
-        ];
-        
-        const moodColors = {
-            'happy': '#77B42B', 'neutral': '#a8a29e', 'stressed': '#F43F5E',
-            'tired': '#8B5CF6', 'productive': '#F59E0B'
-        };
-
-        const WEATHER = [
-            { icon: 'sun', label: 'Sunny', color: 'text-amber-400' },
-            { icon: 'cloud', label: 'Cloudy', color: 'text-stone-400' },
-            { icon: 'cloud-rain', label: 'Rainy', color: 'text-sky-400' },
-            { icon: 'cloud-lightning', label: 'Stormy', color: 'text-violet-400' }
-        ];
-
-        // Gradient colors for stress slider: 1=Matcha, 5=Red
-        const stressColors = {
-            1: '#77B42B', // Matcha
-            2: '#a3e635', // Lime
-            3: '#facc15', // Yellow
-            4: '#fb923c', // Orange
-            5: '#ef4444'  // Red
-        };
-
-        // --- STATE ---
-        let selectedDate = new Date();
-        let dailyLog = {};
-        let userName = localStorage.getItem('ojt_pulse_username') || 'Student';
-
-        // --- DOM ELEMENTS ---
-        const elApp = document.getElementById('app');
-        const elLoading = document.getElementById('loading');
-        const elTimeline = document.getElementById('timeline-container');
-        const elYear = document.getElementById('year');
-        const elUserDisplayName = document.getElementById('user-display-name');
-        
-        const elPrevDay = document.getElementById('btn-prev-day');
-        const elNextDay = document.getElementById('btn-next-day');
-        const elDateDisplay = document.getElementById('current-date-display');
-        const elDatePicker = document.getElementById('date-picker-input');
-        const elRoadmapTitle = document.getElementById('roadmap-title');
-
-        // --- INITIALIZATION ---
-        elYear.innerText = new Date().getFullYear();
-        elUserDisplayName.value = userName;
-
-        elUserDisplayName.addEventListener('input', (e) => {
-            userName = e.target.value;
-            localStorage.setItem('ojt_pulse_username', userName);
-        });
-
-        elPrevDay.addEventListener('click', () => changeDate(-1));
-        elNextDay.addEventListener('click', () => changeDate(1));
-        elDatePicker.addEventListener('change', (e) => {
-            if(e.target.value) {
-                selectedDate = new Date(e.target.value);
-                loadData();
-            }
-        });
-
-        function formatDateKey(date) { return date.toISOString().split('T')[0]; }
-        function formatDateDisplay(date) {
-            const today = new Date();
-            const todayStr = formatDateKey(today);
-            const dateStr = formatDateKey(date);
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = formatDateKey(yesterday);
-
-            if (dateStr === todayStr) return "Today";
-            if (dateStr === yesterdayStr) return "Yesterday";
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
-
-        function changeDate(days) {
-            selectedDate.setDate(selectedDate.getDate() + days);
-            elDatePicker.value = formatDateKey(selectedDate);
-            loadData();
-        }
-
-        function updateClock() {
-            const now = new Date();
-            let hours = now.getHours();
-            const minutes = now.getMinutes();
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12;
-            hours = hours ? hours : 12; 
-            const strTime = hours + ':' + (minutes < 10 ? '0' + minutes : minutes);
-            const clockEl = document.getElementById('big-clock');
-            if (clockEl) {
-                clockEl.innerHTML = `<span>${strTime}</span><span class="text-xs text-stone-400 font-medium">${ampm}</span>`;
-            }
-        }
-        setInterval(updateClock, 1000);
-        updateClock(); 
-
-        function loadData() {
-             const keyDate = formatDateKey(selectedDate);
-             const key = `ojt_pulse_${keyDate}`;
-             
-             elDateDisplay.innerText = formatDateDisplay(selectedDate);
-             elDatePicker.value = keyDate;
-             
-             const displayDate = formatDateDisplay(selectedDate);
-             elRoadmapTitle.innerText = displayDate === "Today" ? "Today's Roadmap" : `${displayDate}`;
-
-             const stored = localStorage.getItem(key);
-             if (stored) {
-                 dailyLog = JSON.parse(stored);
-             } else {
-                 dailyLog = {
-                    date: keyDate,
-                    deliciousFood: false,
-                    hours: HOURS.reduce((acc, h) => ({ ...acc, [h]: { task: '', stress: 1, mood: 'neutral', weather: 'Sunny' } }), {})
-                };
-             }
-             renderUI();
-             showApp();
-        }
-
-        function saveData() {
-            const keyDate = formatDateKey(selectedDate);
-            const key = `ojt_pulse_${keyDate}`;
-            localStorage.setItem(key, JSON.stringify(dailyLog));
-            renderUI();
-        }
-
-        function showApp() {
-            elLoading.classList.add('opacity-0');
-            setTimeout(() => {
-                elLoading.classList.add('hidden');
-                elApp.classList.remove('opacity-0');
-            }, 300);
-        }
-
-        window.updateHour = (hour, field, value) => {
-            if (!dailyLog.hours) return;
-            if (field === 'stress') value = parseInt(value);
-            dailyLog.hours[hour] = { ...dailyLog.hours[hour], [field]: value };
-            saveData();
-        };
-
-        window.toggleFood = () => {
-            dailyLog.deliciousFood = !dailyLog.deliciousFood;
-            saveData();
-        };
-
-        function renderUI() {
-            renderFoodButton();
-            renderTimeline();
-            renderAnalytics();
-            lucide.createIcons(); 
-        }
-
-        function renderFoodButton() {
-            const btn = document.getElementById('btn-food');
-            const bg = document.getElementById('toggle-food-bg');
-            const dot = document.getElementById('toggle-food-dot');
-            const icon = document.getElementById('icon-food');
-            const isActive = dailyLog.deliciousFood;
-
-            if (isActive) {
-                btn.className = 'flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-matcha-500 text-white shadow-matcha-200/50 hover:bg-matcha-600 border border-matcha-500 w-full sm:w-auto justify-between sm:justify-start';
-                bg.classList.remove('bg-stone-200');
-                bg.classList.add('bg-white/20');
-                dot.classList.remove('translate-x-1');
-                dot.classList.add('translate-x-5'); 
-                icon.classList.remove('text-stone-400');
-                icon.classList.add('text-white');
-            } else {
-                btn.className = 'flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-white text-stone-600 hover:bg-stone-50 border border-stone-100 w-full sm:w-auto justify-between sm:justify-start';
-                bg.classList.add('bg-stone-200');
-                bg.classList.remove('bg-white/20');
-                dot.classList.add('translate-x-1');
-                dot.classList.remove('translate-x-5');
-                icon.classList.add('text-stone-400');
-                icon.classList.remove('text-white');
-            }
-        }
-
-        function renderTimeline() {
-            const activeId = document.activeElement ? document.activeElement.id : null;
-            let cursorLoc = null;
-            if(activeId && document.activeElement.tagName === 'INPUT') {
-                cursorLoc = document.activeElement.selectionStart;
-            }
-
-            const examples = [
-                "Drafting the project documentation",
-                "Debugging the API connection issue",
-                "Daily team stand-up meeting",
-                "Learning React hooks and context",
-                "Refactoring the legacy codebase",
-                "Code review for the payment module",
-                "Coffee break & quick stretch ☕",
-                "Updating the Kanban task board",
-                "Reading up on Tailwind CSS best practices",
-                "Responding to client emails",
-                "Planning the next sprint cycle"
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- CONSTANTS ---
+            const HOURS = [
+                "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", 
+                "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"
+            ];
+            const MOODS = [
+                { emoji: '😊', label: 'Happy', value: 'happy' },
+                { emoji: '😐', label: 'Neutral', value: 'neutral' },
+                { emoji: '😫', label: 'Stressed', value: 'stressed' },
+                { emoji: '😴', label: 'Tired', value: 'tired' },
+                { emoji: '🔥', label: 'On Fire', value: 'productive' }
+            ];
+            const moodColors = { 'happy': '#77B42B', 'neutral': '#a8a29e', 'stressed': '#F43F5E', 'tired': '#8B5CF6', 'productive': '#F59E0B' };
+            const stressColors = { 1: '#77B42B', 2: '#a3e635', 3: '#facc15', 4: '#fb923c', 5: '#ef4444' };
+            const WEATHER = [
+                { icon: 'sun', label: 'Sunny', color: 'text-amber-400' },
+                { icon: 'cloud', label: 'Cloudy', color: 'text-stone-400' },
+                { icon: 'cloud-rain', label: 'Rainy', color: 'text-sky-400' },
+                { icon: 'cloud-lightning', label: 'Stormy', color: 'text-violet-400' }
             ];
 
-            elTimeline.innerHTML = HOURS.map((hour, index) => {
-                const data = dailyLog.hours?.[hour] || {};
-                const isActive = data.task && data.task.length > 0;
+            // --- STATE ---
+            let selectedDate = new Date();
+            let currentMonth = new Date(); 
+            let dailyLog = {};
+            let userName = localStorage.getItem('ojt_pulse_username') || 'Student';
+            let ojtSettings = JSON.parse(localStorage.getItem('ojt_pulse_settings')) || { startDate: '', totalHours: 600 };
+
+            // --- DOM ELEMENTS ---
+            const elApp = document.getElementById('app');
+            const elLoading = document.getElementById('loading');
+            const elTimeline = document.getElementById('timeline-container');
+            const elUserDisplayName = document.getElementById('user-display-name');
+            const elHeaderDate = document.getElementById('header-date');
+            const elRoadmapTitle = document.getElementById('roadmap-title');
+            const elScratchpad = document.getElementById('scratchpad');
+            const elProgressPercent = document.getElementById('progress-percent');
+            const elProgressHours = document.getElementById('progress-hours');
+            const elProgressBar = document.getElementById('progress-bar');
+            const elProgressDays = document.getElementById('progress-days');
+            const elStatProductivity = document.getElementById('stat-productivity');
+            const elStatTension = document.getElementById('stat-tension');
+            const elTensionDots = document.getElementById('tension-dots');
+            const elMoodPie = document.getElementById('mood-pie-chart');
+            const elDatePicker = document.getElementById('date-picker-input');
+            const elDateDisplay = document.getElementById('current-date-display');
+            const elBigClock = document.getElementById('big-clock');
+            const elCalMonthYear = document.getElementById('cal-month-year');
+            const elMiniCalendar = document.getElementById('mini-calendar');
+
+            // --- SAFE LISTENER HELPER ---
+            const safeAddListener = (id, event, handler) => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener(event, handler);
+            };
+
+            // --- FUNCTIONS DEFINITIONS ---
+
+            // Expose slider style update globally for inline usage
+            window.updateSliderColor = (input) => {
+                const val = input.value;
+                const color = stressColors[val];
+                input.style.setProperty('--thumb-color', color);
+            };
+
+            function formatDateKey(date) { return date.toISOString().split('T')[0]; }
+            function formatDateDisplay(date) {
+                const today = new Date();
+                const todayStr = formatDateKey(today);
+                const dateStr = formatDateKey(date);
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = formatDateKey(yesterday);
+
+                if (dateStr === todayStr) return "Today";
+                if (dateStr === yesterdayStr) return "Yesterday";
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+
+            function changeDate(days) {
+                selectedDate.setDate(selectedDate.getDate() + days);
+                currentMonth = new Date(selectedDate);
+                loadData();
+            }
+
+            function changeMonth(delta) {
+                currentMonth.setMonth(currentMonth.getMonth() + delta);
+                renderCalendar();
+            }
+
+            function renderCalendar() {
+                if(!elCalMonthYear || !elMiniCalendar) return;
+                const year = currentMonth.getFullYear();
+                const month = currentMonth.getMonth();
+                elCalMonthYear.innerText = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const todayStr = formatDateKey(new Date());
+                const selectedStr = formatDateKey(selectedDate);
+
+                elMiniCalendar.innerHTML = '';
+
+                for (let i = 0; i < firstDay; i++) {
+                    elMiniCalendar.innerHTML += `<div class="calendar-day empty"></div>`;
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(year, month, day);
+                    const dateStr = formatDateKey(date);
+                    let classes = 'calendar-day';
+                    if (dateStr === todayStr) classes += ' today';
+                    if (dateStr === selectedStr) classes += ' active';
+
+                    const el = document.createElement('div');
+                    el.className = classes;
+                    el.innerText = day;
+                    el.onclick = () => {
+                        selectedDate = date;
+                        loadData();
+                    };
+                    elMiniCalendar.appendChild(el);
+                }
+            }
+
+            function updateProgress() {
+                if(!elProgressPercent) return;
+                const totalRequired = parseInt(ojtSettings.totalHours) || 600;
+                let filledHoursCount = 0;
+                for(let i=0; i<localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if(key.startsWith('ojt_pulse_')) {
+                        try {
+                            const dayData = JSON.parse(localStorage.getItem(key));
+                            if(dayData.hours) {
+                                Object.values(dayData.hours).forEach(h => {
+                                    if(h.task && h.task.trim().length > 0) filledHoursCount++;
+                                });
+                            }
+                        } catch(e) {}
+                    }
+                }
+
+                const percent = Math.min(100, Math.round((filledHoursCount / totalRequired) * 100));
+                elProgressPercent.innerText = `${percent}%`;
+                elProgressHours.innerText = `${filledHoursCount} / ${totalRequired} hrs`;
+                elProgressBar.style.width = `${percent}%`;
+
+                if(ojtSettings.startDate) {
+                    const start = new Date(ojtSettings.startDate);
+                    const now = new Date();
+                    const diffTime = now - start;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                    elProgressDays.innerText = diffDays > 0 ? `Day ${diffDays} of Internship` : `Starts in ${Math.abs(diffDays)} days`;
+                } else {
+                    elProgressDays.innerText = `Set Start Date in Settings`;
+                }
+            }
+
+            function loadData() {
+                const keyDate = formatDateKey(selectedDate);
+                const key = `ojt_pulse_${keyDate}`;
                 
-                const weatherHtml = WEATHER.map(w => {
-                    const isSelected = data.weather === w.label;
-                    const classes = isSelected 
-                        ? `bg-white shadow-sm ${w.color}` 
-                        : 'text-stone-300 hover:text-stone-400';
-                    return `
-                        <button onclick="updateHour('${hour}', 'weather', '${w.label}')" 
-                            class="p-1.5 rounded-lg transition-all ${classes}" title="${w.label}">
-                            <i data-lucide="${w.icon}" class="w-3.5 h-3.5"></i>
-                        </button>
-                    `;
-                }).join('');
-
-                const moodHtml = MOODS.map(m => {
-                    const isSelected = data.mood === m.value;
-                    const classes = isSelected 
-                        ? 'bg-white shadow-md scale-110 -translate-y-1' 
-                        : 'bg-stone-50 text-stone-300 hover:bg-stone-100 hover:text-stone-500';
-                    return `
-                        <button onclick="updateHour('${hour}', 'mood', '${m.value}')" 
-                            class="w-9 h-9 rounded-xl flex items-center justify-center text-base transition-all duration-200 ${classes}" 
-                            title="${m.label}">
-                            ${m.emoji}
-                        </button>
-                    `;
-                }).join('');
-
-                const stressVal = data.stress || 1;
-                // Dynamic thumb color for this specific slider
-                const currentStressColor = stressColors[stressVal];
+                if(elHeaderDate) elHeaderDate.innerText = formatDateDisplay(selectedDate);
+                if(elDatePicker) elDatePicker.value = keyDate;
                 
-                const placeholder = `e.g. ${examples[index % examples.length]}`;
+                const displayDate = formatDateDisplay(selectedDate);
+                if(elRoadmapTitle) elRoadmapTitle.innerText = displayDate === "Today" ? "Today's Roadmap" : `Roadmap for ${displayDate}`;
 
-                // Removed fade-in class to stop flashing on updates
-                return `
-                <div class="group relative">
-                    <div class="w-full bg-white/70 backdrop-blur-md p-5 rounded-[1.8rem] shadow-sm border border-white/60 transition-all duration-300 hover:bg-white/90 hover:shadow-lg hover:shadow-matcha-200/10 ${isActive ? 'ring-1 ring-matcha-200' : ''}">
-                        <div class="flex flex-col gap-4">
-                            <div class="flex items-center justify-between">
-                                <span class="text-2xl font-black text-stone-700 tracking-tight">${hour}</span>
-                                <div class="flex gap-1 p-1 bg-stone-100/50 rounded-lg">
-                                    ${weatherHtml}
-                                </div>
-                            </div>
+                const stored = localStorage.getItem(key);
+                if (stored) {
+                    dailyLog = JSON.parse(stored);
+                } else {
+                    dailyLog = {
+                        date: keyDate,
+                        deliciousFood: false,
+                        hours: HOURS.reduce((acc, h) => ({ ...acc, [h]: { task: '', stress: 1, mood: 'neutral', weather: 'Sunny' } }), {})
+                    };
+                }
+                
+                renderCalendar();
+                renderUI();
+                updateProgress();
+                showApp();
+            }
 
-                            <div class="space-y-1.5">
-                                <label for="input-${hour}" class="text-[9px] font-bold text-stone-400 uppercase tracking-widest ml-1">Activity</label>
-                                <div class="relative group/input">
-                                    <input 
-                                        id="input-${hour}"
-                                        type="text"
-                                        placeholder="${placeholder}"
-                                        value="${data.task || ''}"
-                                        onchange="updateHour('${hour}', 'task', this.value)"
-                                        class="w-full bg-stone-50/50 hover:bg-white border border-stone-200/50 rounded-2xl px-4 py-3 text-sm text-stone-700 placeholder:text-stone-400 focus:ring-2 focus:ring-matcha-400/30 focus:bg-white focus:border-matcha-200 transition-all outline-none font-medium"
-                                    />
-                                    <div class="absolute right-4 top-3.5 transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}">
-                                        <i data-lucide="check-circle-2" class="w-5 h-5 text-matcha-500 fill-matcha-100"></i>
+            function saveData() {
+                const keyDate = formatDateKey(selectedDate);
+                const key = `ojt_pulse_${keyDate}`;
+                localStorage.setItem(key, JSON.stringify(dailyLog));
+                renderUI(); // Re-render for analytics
+                updateProgress();
+            }
+
+            function showApp() {
+                elLoading.classList.add('opacity-0');
+                setTimeout(() => {
+                    elLoading.classList.add('hidden');
+                    elApp.classList.remove('opacity-0');
+                }, 300);
+            }
+
+            // Expose updateHour globally for inline HTML events
+            window.updateHour = (hour, field, value) => {
+                if (!dailyLog.hours) return;
+                if (field === 'stress') value = parseInt(value);
+                dailyLog.hours[hour] = { ...dailyLog.hours[hour], [field]: value };
+                saveData();
+            };
+
+            function toggleFood() {
+                dailyLog.deliciousFood = !dailyLog.deliciousFood;
+                saveData();
+            }
+
+            function renderUI() {
+                renderFoodButton();
+                renderTimeline();
+                renderAnalytics();
+                lucide.createIcons(); 
+            }
+
+            function renderFoodButton() {
+                const btn = document.getElementById('btn-food');
+                const bg = document.getElementById('toggle-food-bg');
+                const dot = document.getElementById('toggle-food-dot');
+                const icon = document.getElementById('icon-food');
+                if(!btn) return;
+
+                const isActive = dailyLog.deliciousFood;
+
+                if (isActive) {
+                    btn.className = 'flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-matcha-500 text-white shadow-matcha-200/50 hover:bg-matcha-600 border border-matcha-500 w-full sm:w-auto justify-between sm:justify-start';
+                    bg.classList.remove('bg-stone-200');
+                    bg.classList.add('bg-white/20');
+                    dot.classList.remove('translate-x-1');
+                    dot.classList.add('translate-x-5'); 
+                    icon.classList.remove('text-stone-400');
+                    icon.classList.add('text-white');
+                } else {
+                    btn.className = 'flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-white text-stone-600 hover:bg-stone-50 border border-stone-100 w-full sm:w-auto justify-between sm:justify-start';
+                    bg.classList.add('bg-stone-200');
+                    bg.classList.remove('bg-white/20');
+                    dot.classList.add('translate-x-1');
+                    dot.classList.remove('translate-x-5');
+                    icon.classList.add('text-stone-400');
+                    icon.classList.remove('text-white');
+                }
+            }
+
+            function renderTimeline() {
+                if(!elTimeline) return;
+                const activeId = document.activeElement ? document.activeElement.id : null;
+                let cursorLoc = null;
+                if(activeId && document.activeElement.tagName === 'INPUT') {
+                    cursorLoc = document.activeElement.selectionStart;
+                }
+
+                const examples = [
+                    "Drafting the project documentation",
+                    "Debugging the API connection issue",
+                    "Daily team stand-up meeting",
+                    "Learning React hooks and context",
+                    "Refactoring the legacy codebase",
+                    "Code review for the payment module",
+                    "Coffee break & quick stretch ☕",
+                    "Updating the Kanban task board",
+                    "Reading up on Tailwind CSS best practices",
+                    "Responding to client emails",
+                    "Planning the next sprint cycle"
+                ];
+
+                elTimeline.innerHTML = HOURS.map((hour, index) => {
+                    const data = dailyLog.hours?.[hour] || {};
+                    const isActive = data.task && data.task.length > 0;
+                    
+                    const weatherHtml = WEATHER.map(w => {
+                        const isSelected = data.weather === w.label;
+                        const classes = isSelected 
+                            ? `bg-white shadow-sm ${w.color}` 
+                            : 'text-stone-300 hover:text-stone-400';
+                        return `
+                            <button onclick="updateHour('${hour}', 'weather', '${w.label}')" 
+                                class="p-1.5 rounded-lg transition-all ${classes}" title="${w.label}">
+                                <i data-lucide="${w.icon}" class="w-3.5 h-3.5"></i>
+                            </button>
+                        `;
+                    }).join('');
+
+                    const moodHtml = MOODS.map(m => {
+                        const isSelected = data.mood === m.value;
+                        const classes = isSelected 
+                            ? 'bg-white shadow-md scale-110 -translate-y-1' 
+                            : 'bg-stone-50 text-stone-300 hover:bg-stone-100 hover:text-stone-500';
+                        return `
+                            <button onclick="updateHour('${hour}', 'mood', '${m.value}')" 
+                                class="w-9 h-9 rounded-xl flex items-center justify-center text-base transition-all duration-200 ${classes}" 
+                                title="${m.label}">
+                                ${m.emoji}
+                            </button>
+                        `;
+                    }).join('');
+
+                    const stressVal = data.stress || 1;
+                    const currentStressColor = stressColors[stressVal];
+                    const placeholder = `e.g. ${examples[index % examples.length]}`;
+
+                    return `
+                    <div class="group relative">
+                        <div class="w-full bg-white/70 backdrop-blur-md p-5 rounded-[1.8rem] shadow-sm border border-white/60 transition-all duration-300 hover:bg-white/90 hover:shadow-lg hover:shadow-matcha-200/10 ${isActive ? 'ring-1 ring-matcha-200' : ''}">
+                            <div class="flex flex-col gap-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-2xl font-black text-stone-700 tracking-tight">${hour}</span>
+                                    <div class="flex gap-1 p-1 bg-stone-100/50 rounded-lg">
+                                        ${weatherHtml}
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="flex flex-col lg:flex-row gap-4 pt-1">
-                                <div class="flex-1 space-y-2">
-                                    <div class="flex justify-between items-center px-1">
-                                        <span class="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Stress</span>
-                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md" style="background-color: ${currentStressColor}20; color: ${currentStressColor};">${stressVal} / 5</span>
+                                <div class="space-y-1.5">
+                                    <label for="input-${hour}" class="text-[9px] font-bold text-stone-400 uppercase tracking-widest ml-1">Activity</label>
+                                    <div class="relative group/input">
+                                        <input 
+                                            id="input-${hour}"
+                                            type="text"
+                                            placeholder="${placeholder}"
+                                            value="${data.task || ''}"
+                                            onchange="updateHour('${hour}', 'task', this.value)"
+                                            class="w-full bg-stone-50/50 hover:bg-white border border-stone-200/50 rounded-2xl px-4 py-3 text-sm text-stone-700 placeholder:text-stone-400 focus:ring-2 focus:ring-matcha-400/30 focus:bg-white focus:border-matcha-200 transition-all outline-none font-medium"
+                                        />
+                                        <div class="absolute right-4 top-3.5 transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}">
+                                            <i data-lucide="check-circle-2" class="w-5 h-5 text-matcha-500 fill-matcha-100"></i>
+                                        </div>
                                     </div>
-                                    <input 
-                                        type="range" min="1" max="5" step="1"
-                                        value="${stressVal}"
-                                        style="--thumb-color: ${currentStressColor}"
-                                        onchange="updateHour('${hour}', 'stress', this.value)"
-                                        oninput="this.style.setProperty('--thumb-color', '${JSON.stringify(stressColors)}'[this.value]) /* Quick feedback hack? No, re-render handles it better */"
-                                        class="w-full h-1.5 bg-stone-100 rounded-lg"
-                                    />
                                 </div>
-                                <div class="space-y-2">
-                                    <p class="text-[9px] font-bold text-stone-400 uppercase tracking-widest px-1">Vibe</p>
-                                    <div class="flex gap-1.5">
-                                        ${moodHtml}
+
+                                <div class="flex flex-col lg:flex-row gap-4 pt-1">
+                                    <div class="flex-1 space-y-2">
+                                        <div class="flex justify-between items-center px-1">
+                                            <span class="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Stress</span>
+                                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md" style="background-color: ${currentStressColor}20; color: ${currentStressColor};">${stressVal} / 5</span>
+                                        </div>
+                                        <input 
+                                            type="range" min="1" max="5" step="1"
+                                            value="${stressVal}"
+                                            style="--thumb-color: ${currentStressColor}"
+                                            onchange="updateHour('${hour}', 'stress', this.value)"
+                                            oninput="updateSliderColor(this)"
+                                            class="w-full h-1.5 bg-stone-100 rounded-lg"
+                                        />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <p class="text-[9px] font-bold text-stone-400 uppercase tracking-widest px-1">Vibe</p>
+                                        <div class="flex gap-1.5">
+                                            ${moodHtml}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                `;
-            }).join('');
+                    `;
+                }).join('');
 
-            if(activeId) {
-                const el = document.getElementById(activeId);
-                if(el) {
-                    el.focus();
-                    if(cursorLoc !== null) el.setSelectionRange(cursorLoc, cursorLoc);
+                if(activeId) {
+                    const el = document.getElementById(activeId);
+                    if(el) {
+                        el.focus();
+                        if(cursorLoc !== null) el.setSelectionRange(cursorLoc, cursorLoc);
+                    }
                 }
             }
-        }
 
-        function renderAnalytics() {
-            if (!dailyLog.hours) return;
-            const logs = Object.values(dailyLog.hours);
-            const filledTasks = logs.filter(l => l.task && l.task.trim().length > 0).length;
-            const productivity = Math.round((filledTasks / HOURS.length) * 100);
-            const totalStress = logs.reduce((acc, l) => acc + (l.stress || 1), 0);
-            const avgStress = (totalStress / logs.length).toFixed(1);
-            const moodCounts = logs.reduce((acc, l) => {
-                const m = l.mood || 'neutral';
-                acc[m] = (acc[m] || 0) + 1;
-                return acc;
-            }, {});
+            function renderAnalytics() {
+                if (!dailyLog.hours) return;
+                const logs = Object.values(dailyLog.hours);
+                const filledTasks = logs.filter(l => l.task && l.task.trim().length > 0).length;
+                const productivity = Math.round((filledTasks / HOURS.length) * 100);
+                const totalStress = logs.reduce((acc, l) => acc + (l.stress || 1), 0);
+                const avgStress = (totalStress / logs.length).toFixed(1);
+                const moodCounts = logs.reduce((acc, l) => {
+                    const m = l.mood || 'neutral';
+                    acc[m] = (acc[m] || 0) + 1;
+                    return acc;
+                }, {});
 
-            document.getElementById('stat-productivity').innerText = `${productivity}%`;
-            document.getElementById('stat-tension').innerText = avgStress;
+                if(elStatProductivity) elStatProductivity.innerText = `${productivity}%`;
+                if(elStatTension) elStatTension.innerText = avgStress;
 
-            const dotsContainer = document.getElementById('tension-dots');
-            dotsContainer.innerHTML = [1,2,3,4,5].map(i => {
-                const isActive = i <= Math.round(avgStress);
-                const colorClass = isActive ? 'bg-rose-400' : 'bg-rose-100';
-                return `<div class="w-1 h-1 rounded-full ${colorClass}"></div>`;
-            }).join('');
-
-            renderPieChart(moodCounts, logs.length);
-        }
-
-        function renderPieChart(moodCounts, total) {
-            const chartEl = document.getElementById('mood-pie-chart');
-            if (total === 0) {
-                chartEl.style.background = '#e7e5e4'; 
-                return;
-            }
-            let currentPercent = 0;
-            const segments = [];
-            Object.keys(moodCounts).forEach(mood => {
-                const count = moodCounts[mood];
-                const percent = (count / total) * 100;
-                const color = moodColors[mood] || '#e7e5e4';
-                segments.push(`${color} ${currentPercent}% ${currentPercent + percent}%`);
-                currentPercent += percent;
-            });
-            chartEl.style.background = `conic-gradient(${segments.join(', ')})`;
-        }
-
-        // --- DATA MANAGEMENT ---
-        const modalData = document.getElementById('modal-data');
-        const introToast = document.getElementById('intro-toast');
-
-        // Toggle Data Modal
-        window.toggleDataModal = (show) => {
-            const inner = modalData.querySelector('div');
-            if (show) {
-                modalData.classList.remove('hidden');
-                setTimeout(() => {
-                    modalData.classList.remove('opacity-0');
-                    inner.classList.remove('scale-95');
-                }, 10);
-            } else {
-                modalData.classList.add('opacity-0');
-                inner.classList.add('scale-95');
-                setTimeout(() => {
-                    modalData.classList.add('hidden');
-                }, 300);
-            }
-        };
-        
-        window.openDataModal = () => toggleDataModal(true);
-        document.getElementById('btn-data-modal').addEventListener('click', () => toggleDataModal(true));
-
-        // Intro Toast Logic
-        function showIntro() {
-            if (!localStorage.getItem('ojt_pulse_seen_intro')) {
-                introToast.classList.remove('hidden');
-            }
-        }
-        window.dismissIntro = () => {
-            introToast.style.opacity = '0';
-            introToast.style.transform = 'translateY(20px)';
-            setTimeout(() => introToast.classList.add('hidden'), 500);
-            localStorage.setItem('ojt_pulse_seen_intro', 'true');
-        };
-
-        // Export Data
-        document.getElementById('btn-export-all').addEventListener('click', () => {
-            const allData = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith('ojt_pulse_')) {
-                    allData[key] = JSON.parse(localStorage.getItem(key));
+                if(elTensionDots) {
+                    elTensionDots.innerHTML = [1,2,3,4,5].map(i => {
+                        const isActive = i <= Math.round(avgStress);
+                        const colorClass = isActive ? 'bg-rose-400' : 'bg-rose-100';
+                        return `<div class="w-1.5 h-1.5 rounded-full ${colorClass}"></div>`;
+                    }).join('');
                 }
-            }
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allData, null, 2));
-            const a = document.createElement('a');
-            a.href = dataStr;
-            a.download = `OJT_Pulse_Backup_${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-        });
 
-        // Import Data
-        document.getElementById('import-file').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    Object.keys(data).forEach(k => {
-                        if(k.startsWith('ojt_pulse_')) {
-                            localStorage.setItem(k, JSON.stringify(data[k]));
-                        }
-                    });
-                    alert('Data restored successfully!');
-                    location.reload();
-                } catch (err) {
-                    alert('Error reading backup file.');
-                    console.error(err);
+                renderPieChart(moodCounts, logs.length);
+            }
+
+            function renderPieChart(moodCounts, total) {
+                if(!elMoodPie) return;
+                if (total === 0) {
+                    elMoodPie.style.background = '#e7e5e4'; 
+                    return;
+                }
+                let currentPercent = 0;
+                const segments = [];
+                Object.keys(moodCounts).forEach(mood => {
+                    const count = moodCounts[mood];
+                    const percent = (count / total) * 100;
+                    const color = moodColors[mood] || '#e7e5e4';
+                    segments.push(`${color} ${currentPercent}% ${currentPercent + percent}%`);
+                    currentPercent += percent;
+                });
+                elMoodPie.style.background = `conic-gradient(${segments.join(', ')})`;
+            }
+
+            // --- DATA MANAGEMENT ---
+            const modalData = document.getElementById('modal-data');
+            const modalSettings = document.getElementById('modal-settings');
+            const introToast = document.getElementById('intro-toast');
+
+            function toggleDataModal(show) {
+                const inner = modalData.querySelector('div');
+                if (show) {
+                    modalData.classList.remove('hidden');
+                    setTimeout(() => { modalData.classList.remove('opacity-0'); inner.classList.remove('scale-95'); }, 10);
+                } else {
+                    modalData.classList.add('opacity-0'); inner.classList.add('scale-95');
+                    setTimeout(() => { modalData.classList.add('hidden'); }, 300);
                 }
             };
-            reader.readAsText(file);
+            window.openDataModal = () => toggleDataModal(true);
+
+            function toggleSettingsModal(show) {
+                const inner = modalSettings.querySelector('div');
+                if(show) {
+                    document.getElementById('setting-start-date').value = ojtSettings.startDate;
+                    document.getElementById('setting-total-hours').value = ojtSettings.totalHours;
+                    modalSettings.classList.remove('hidden');
+                    setTimeout(() => { modalSettings.classList.remove('opacity-0'); inner.classList.remove('scale-95'); }, 10);
+                } else {
+                    modalSettings.classList.add('opacity-0'); inner.classList.add('scale-95');
+                    setTimeout(() => { modalSettings.classList.add('hidden'); }, 300);
+                }
+            }
+            
+            function saveSettings() {
+                ojtSettings.startDate = document.getElementById('setting-start-date').value;
+                ojtSettings.totalHours = document.getElementById('setting-total-hours').value;
+                localStorage.setItem('ojt_pulse_settings', JSON.stringify(ojtSettings));
+                updateProgress();
+                toggleSettingsModal(false);
+            }
+
+            function dismissIntro() {
+                introToast.style.opacity = '0';
+                introToast.style.transform = 'translateY(20px)';
+                setTimeout(() => introToast.classList.add('hidden'), 500);
+                localStorage.setItem('ojt_pulse_seen_intro', 'true');
+            };
+            setTimeout(() => { if (!localStorage.getItem('ojt_pulse_seen_intro')) introToast.classList.remove('hidden'); }, 1500);
+
+            function exportData() {
+                const allData = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('ojt_pulse_')) {
+                        allData[key] = JSON.parse(localStorage.getItem(key));
+                    }
+                }
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allData, null, 2));
+                const a = document.createElement('a');
+                a.href = dataStr;
+                a.download = `OJT_Backup_${formatDateKey(new Date())}.json`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }
+
+            function importData(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        Object.keys(data).forEach(k => { if(k.startsWith('ojt_pulse_')) localStorage.setItem(k, JSON.stringify(data[k])); });
+                        alert('Restored!'); location.reload();
+                    } catch (err) { console.error(err); alert('Error reading file.'); }
+                };
+                reader.readAsText(file);
+            }
+
+            function updateClock() {
+                const now = new Date();
+                let hours = now.getHours();
+                const minutes = now.getMinutes();
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; 
+                const strTime = hours + ':' + (minutes < 10 ? '0' + minutes : minutes);
+                if (elBigClock) {
+                    elBigClock.innerHTML = `<span>${strTime}</span><span class="text-xs text-stone-400 font-medium">${ampm}</span>`;
+                }
+            }
+            setInterval(updateClock, 1000);
+            updateClock(); 
+
+            // --- INITIALIZATION (LISTENERS AT THE END) ---
+            if(elUserDisplayName) elUserDisplayName.value = userName;
+            safeAddListener('user-display-name', 'input', (e) => {
+                userName = e.target.value;
+                localStorage.setItem('ojt_pulse_username', userName);
+            });
+
+            // Scratchpad Logic
+            if(elScratchpad) {
+                elScratchpad.value = localStorage.getItem('ojt_pulse_scratchpad') || '';
+                elScratchpad.addEventListener('input', (e) => {
+                    localStorage.setItem('ojt_pulse_scratchpad', e.target.value);
+                });
+            }
+
+            // Date Controls
+            safeAddListener('btn-prev-day', 'click', () => changeDate(-1));
+            safeAddListener('btn-next-day', 'click', () => changeDate(1));
+            if(elDatePicker) {
+                elDatePicker.addEventListener('change', (e) => {
+                    if(e.target.value) {
+                        selectedDate = new Date(e.target.value);
+                        currentMonth = new Date(selectedDate);
+                        loadData();
+                    }
+                });
+            }
+
+            // Calendar Nav
+            safeAddListener('btn-cal-prev', 'click', () => changeMonth(-1));
+            safeAddListener('btn-cal-next', 'click', () => changeMonth(1));
+
+            // Settings Button
+            safeAddListener('btn-settings', 'click', () => toggleSettingsModal(true));
+            safeAddListener('btn-close-settings', 'click', () => toggleSettingsModal(false));
+            safeAddListener('btn-save-settings', 'click', saveSettings);
+
+            // Data Modal Buttons
+            safeAddListener('btn-data-modal', 'click', () => toggleDataModal(true));
+            safeAddListener('btn-close-data', 'click', () => toggleDataModal(false));
+            safeAddListener('btn-export-all', 'click', exportData);
+            safeAddListener('btn-import-trigger', 'click', () => document.getElementById('import-file').click());
+            safeAddListener('import-file', 'change', importData);
+
+            // Food Button
+            safeAddListener('btn-food', 'click', toggleFood);
+
+            // Intro Toast
+            safeAddListener('btn-intro-gotit', 'click', dismissIntro);
+            safeAddListener('btn-intro-backup', 'click', () => { openDataModal(); dismissIntro(); });
+
+            // Initialize Data
+            loadData();
         });
-
-        document.getElementById('btn-food').addEventListener('click', toggleFood);
-        loadData();
-        
-        // Show intro toast after a short delay
-        setTimeout(showIntro, 1500);
-
     </script>
 </body>
 </html>
