@@ -111,7 +111,6 @@
             <aside class="lg:col-span-3 space-y-6 lg:sticky lg:top-24 order-2 lg:order-1">
                 <div class="bg-white/70 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-white/60 space-y-4">
                     <h3 class="font-bold text-stone-700 text-sm mb-2 flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-4 h-4 text-stone-400"></i> Daily Vitals</h3>
-                    
                     <div class="p-3 bg-stone-50 rounded-2xl border border-stone-100">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-xs font-bold text-stone-600">Attendance</span>
@@ -157,7 +156,7 @@
                         <div id="toggle-food-bg" class="w-8 h-4 rounded-full bg-stone-200 relative"><div id="toggle-food-dot" class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-all"></div></div>
                     </button>
                 </div>
-                <!-- TIMELINE CONTAINER - Ensured it renders even if empty -->
+                <!-- TIMELINE CONTAINER -->
                 <div id="timeline-container" class="space-y-4 pb-20 min-h-[200px]"></div>
             </section>
 
@@ -177,7 +176,7 @@
                 </div>
                 <div class="bg-white/70 p-5 rounded-[1.5rem] border border-white/60 shadow-sm">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-sm" id="cal-month-year">...</h3>
+                        <h3 class="font-bold text-stone-700 text-sm" id="cal-month-year">...</h3>
                         <div class="flex gap-1">
                             <button id="btn-cal-prev"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
                             <button id="btn-cal-next"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
@@ -232,17 +231,25 @@
 
         let currentUser = null, selectedDate = new Date(), currentMonth = new Date(), dailyLog = {}, ojtSettings = { startDate: '', totalHours: 600 }, allLogsCache = {}, scratchTimeout;
 
+        // Forced Loading Removal (Safety Net)
+        setTimeout(() => document.getElementById('loading').classList.add('hidden'), 4000);
+
         onAuthStateChanged(auth, async user => {
             if (user) {
                 currentUser = user; 
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('user-profile').classList.remove('hidden');
                 document.getElementById('user-profile').classList.add('flex');
-                document.getElementById('user-avatar').src = user.photoURL;
+                if(user.photoURL) document.getElementById('user-avatar').src = user.photoURL;
                 document.getElementById('user-name-display').innerText = user.displayName;
                 document.getElementById('welcome-name').innerText = user.displayName.split(' ')[0];
-                try { await initSettings(); await fetchAllLogs(); subscribeToDate(); } 
-                catch(e) { console.error(e); }
+                
+                // CRITICAL: Call subscribe immediately to render UI even if DB fetches fail
+                subscribeToDate();
+                
+                try { await initSettings(); await fetchAllLogs(); } 
+                catch(e) { console.error("Data load error:", e); }
+                
                 document.getElementById('app').classList.remove('opacity-0');
                 document.getElementById('loading').classList.add('hidden');
             } else {
@@ -256,7 +263,7 @@
             const snap = await getDoc(doc(db, 'ojt', currentUser.uid, 'config', 'settings'));
             if (snap.exists()) ojtSettings = snap.data();
             const scratch = await getDoc(doc(db, 'ojt', currentUser.uid, 'config', 'scratchpad'));
-            if (scratch.exists()) document.getElementById('scratchpad').value = scratch.data().text || '';
+            if (scratch.exists()) document.getElementById('scratchpad').value = scratch.data().text;
         }
 
         async function fetchAllLogs() {
@@ -271,39 +278,44 @@
             document.getElementById('date-picker-input').value = key;
             document.getElementById('roadmap-title').innerText = formatDateDisplay(selectedDate);
             
-            // Render basic UI immediately so user sees structure
-            renderUI(); 
+            // Render default structure immediately to prevent "missing hours"
+            dailyLog = { 
+                date: key, 
+                deliciousFood: false, 
+                attendance: 'absent', 
+                hours: HOURS.reduce((a,h)=>({...a,[h]:{task:'',stress:1,mood:'neutral',weather:'Sunny'}}), {}) 
+            };
+            renderUI(); // Show empty UI first
 
+            // Then try to fetch real data
             onSnapshot(doc(db, 'ojt', currentUser.uid, 'logs', key), d => {
                 if (d.exists()) {
-                    dailyLog = d.data();
-                    // Fallback if hours object is missing in DB
-                    if (!dailyLog.hours) {
-                         dailyLog.hours = HOURS.reduce((a,h)=>({...a,[h]:{task:'',stress:1,mood:'neutral',weather:'Sunny'}}), {});
-                    }
-                } else {
-                    dailyLog = { 
-                        date: key, 
-                        deliciousFood: false, 
-                        attendance: 'absent', 
-                        hours: HOURS.reduce((a,h)=>({...a,[h]:{task:'',stress:1,mood:'neutral',weather:'Sunny'}}), {}) 
-                    };
+                    const data = d.data();
+                    // Merge with default structure to ensure no missing keys
+                    dailyLog = { ...dailyLog, ...data };
+                    // Ensure 'hours' object has all slots
+                    HOURS.forEach(h => { if(!dailyLog.hours[h]) dailyLog.hours[h] = {task:'', stress:1, mood:'neutral', weather:'Sunny'}; });
                 }
                 allLogsCache[key] = dailyLog;
                 renderUI();
                 renderCalendar(); 
                 updateProgress();
+            }, (err) => {
+                console.warn("Snapshot error (likely permissions):", err);
+                // Keep the default UI we rendered above
             });
         }
 
         function renderUI() {
             const container = document.getElementById('timeline-container');
-            // Ensure hours exist before mapping
-            const hoursData = dailyLog.hours || HOURS.reduce((a,h)=>({...a,[h]:{task:'',stress:1,mood:'neutral',weather:'Sunny'}}), {});
+            if(!container) return;
+            
+            // Guard clause: ensure hours exist
+            if (!dailyLog.hours) dailyLog.hours = HOURS.reduce((a,h)=>({...a,[h]:{task:'',stress:1,mood:'neutral',weather:'Sunny'}}), {});
 
             container.innerHTML = HOURS.map(h => {
-                const data = hoursData[h] || {task:'', stress:1, mood:'neutral', weather:'Sunny'};
-                const col = stressColors[data.stress];
+                const data = dailyLog.hours[h];
+                const col = stressColors[data.stress] || stressColors[1];
                 
                 const weatherBtns = WEATHER.map(w => 
                     `<button onclick="updateWeather('${h}', '${w.label}')" class="p-1 rounded ${data.weather===w.label ? 'bg-white shadow-sm '+w.color : 'text-stone-300'}"><i data-lucide="${w.icon}" class="w-3 h-3"></i></button>`
@@ -348,7 +360,6 @@
                 btn.className = cls;
             });
 
-            // Food Button
             const btnFood = document.getElementById('toggle-food-bg');
             btnFood.className = dailyLog.deliciousFood ? "w-8 h-4 rounded-full bg-matcha-500 relative" : "w-8 h-4 rounded-full bg-stone-200 relative";
             document.getElementById('toggle-food-dot').style.left = dailyLog.deliciousFood ? "18px" : "2px";
@@ -357,7 +368,7 @@
             lucide.createIcons();
         }
 
-        // --- GLOBAL WINDOW EXPORTS ---
+        // --- GLOBAL ACTIONS ---
         window.updateTask = (h, v) => { dailyLog.hours[h].task = v; saveDaily(); };
         window.updateStress = (h, v) => { dailyLog.hours[h].stress = parseInt(v); saveDaily(); };
         window.updateMood = (h, v) => { dailyLog.hours[h].mood = v; saveDaily(); };
@@ -367,13 +378,15 @@
         
         async function saveDaily() {
             const key = formatDateKey(selectedDate);
-            await setDoc(doc(db, 'ojt', currentUser.uid, 'logs', key), dailyLog); 
-            allLogsCache[key] = dailyLog; updateProgress(); renderCalendar(); renderUI();
+            // Optimistic update locally
+            allLogsCache[key] = dailyLog; 
+            updateProgress(); renderCalendar(); renderUI();
+            // Then save to DB
+            if(currentUser) await setDoc(doc(db, 'ojt', currentUser.uid, 'logs', key), dailyLog); 
         }
 
         window.changeDate = (d) => { selectedDate.setDate(selectedDate.getDate() + d); subscribeToDate(); };
         
-        // --- BUTTON LISTENERS ---
         document.getElementById('btn-settings').onclick = () => {
             document.getElementById('setting-start-date').value = ojtSettings.startDate;
             document.getElementById('setting-total-hours').value = ojtSettings.totalHours;
@@ -396,7 +409,6 @@
         document.getElementById('btn-cal-next').onclick = () => { currentMonth.setMonth(currentMonth.getMonth()+1); renderCalendar(); };
         document.getElementById('date-picker-input').onchange = (e) => { if(e.target.value) { selectedDate = new Date(e.target.value); subscribeToDate(); }};
 
-        // --- HELPERS ---
         function formatDateKey(d) { return d.toISOString().split('T')[0]; }
         function formatDateDisplay(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
 
