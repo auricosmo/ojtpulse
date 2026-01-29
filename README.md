@@ -2,9 +2,13 @@ OJT Pulse Tracker 🧠✨
 
 A beautiful, aesthetic, and privacy-focused web application designed for On-the-Job Training (OJT) students to track their hourly productivity, stress levels, and overall well-being.
 
+
+
 🌟 Overview
 
 OJT Pulse Tracker is a client-side application that helps students maintain balance during their internship. It features a "Matcha & Latte" glassmorphism aesthetic, intuitive hourly logging, and real-time analytics—all running directly in your browser without the need for a server or account creation.
+
+
 
 🚀 Key Features
 
@@ -32,6 +36,8 @@ Backup System: Export and Import your data as .json files to switch devices or c
 
 Mobile Optimized: A responsive layout that looks great on phones and desktops.
 
+
+
 🛠️ Tech Stack
 
 Core: HTML5, Vanilla JavaScript
@@ -41,6 +47,8 @@ Styling: Tailwind CSS (via CDN)
 Icons: Lucide React (via CDN)
 
 Font: Inter (Google Fonts)
+
+
 
 📦 How to Use
 
@@ -62,6 +70,8 @@ Open index.html in any modern web browser (Chrome, Edge, Safari).
 
 Start logging your day!
 
+
+
 ⚠️ Important Note on Data
 
 This application runs 100% locally.
@@ -72,6 +82,8 @@ Clearing your browser history/cache will delete your logs.
 
 Recommendation: Use the Backup (Download Icon) button regularly to save your progress to your computer.
 
+
+
 🎨 Customization
 
 You can easily change the color palette in the tailwind.config script inside index.html.
@@ -79,6 +91,8 @@ You can easily change the color palette in the tailwind.config script inside ind
 Primary Colors: Matcha, Sky, Rose, Violet.
 
 Backgrounds: Animated gradients found in the <body> tag.
+
+
 
 📄 License
 
