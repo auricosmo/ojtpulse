@@ -129,7 +129,23 @@
                     </div>
                     <div>
                         <h1 class="text-lg font-black text-stone-800 leading-none tracking-tight">OJT Pulse</h1>
-                        <p class="text-[10px] text-stone-400 font-bold uppercase tracking-widest mt-1">Daily Tracker</p>
+                        
+                        <!-- Date Navigation -->
+                        <div class="flex items-center gap-2 mt-1">
+                            <button id="btn-prev-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors" title="Previous Day">
+                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                            </button>
+                            <div class="relative group cursor-pointer">
+                                <div id="current-date-display" class="text-[11px] font-bold text-stone-500 uppercase tracking-widest hover:text-matcha-600 transition-colors border-b border-transparent hover:border-matcha-300">
+                                    Today
+                                </div>
+                                <!-- Native Date Picker Overlay -->
+                                <input type="date" id="date-picker-input" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                            </div>
+                            <button id="btn-next-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors" title="Next Day">
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -217,7 +233,7 @@
             <div class="flex items-center justify-between px-4">
                 <h3 class="text-xl font-black text-stone-800 flex items-center gap-3">
                     <span class="w-2 h-2 bg-matcha-500 rounded-full shadow-[0_0_10px_rgba(119,180,43,0.5)]"></span>
-                    Today's Roadmap
+                    <span id="roadmap-title">Today's Roadmap</span>
                 </h3>
             </div>
 
@@ -266,7 +282,7 @@
         ];
 
         // --- STATE ---
-        const todayStr = new Date().toISOString().split('T')[0];
+        let selectedDate = new Date(); // Defaults to today
         let dailyLog = {};
         let userName = localStorage.getItem('ojt_pulse_username') || 'Student';
 
@@ -278,6 +294,13 @@
         const elUserId = document.getElementById('user-id-display');
         const elUserDisplayName = document.getElementById('user-display-name');
         
+        // Date Controls
+        const elPrevDay = document.getElementById('btn-prev-day');
+        const elNextDay = document.getElementById('btn-next-day');
+        const elDateDisplay = document.getElementById('current-date-display');
+        const elDatePicker = document.getElementById('date-picker-input');
+        const elRoadmapTitle = document.getElementById('roadmap-title');
+
         // --- INITIALIZATION ---
         elYear.innerText = new Date().getFullYear();
         elUserId.innerText = 'Guest';
@@ -289,6 +312,45 @@
             localStorage.setItem('ojt_pulse_username', userName);
         });
 
+        // Date Picker Listeners
+        elPrevDay.addEventListener('click', () => changeDate(-1));
+        elNextDay.addEventListener('click', () => changeDate(1));
+        elDatePicker.addEventListener('change', (e) => {
+            if(e.target.value) {
+                selectedDate = new Date(e.target.value);
+                loadData();
+            }
+        });
+
+        // Helper: Format date as YYYY-MM-DD for storage key
+        function formatDateKey(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        // Helper: Format date for display
+        function formatDateDisplay(date) {
+            const today = new Date();
+            const todayStr = formatDateKey(today);
+            const dateStr = formatDateKey(date);
+
+            // Reset time parts for comparison
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = formatDateKey(yesterday);
+
+            if (dateStr === todayStr) return "Today";
+            if (dateStr === yesterdayStr) return "Yesterday";
+            
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function changeDate(days) {
+            selectedDate.setDate(selectedDate.getDate() + days);
+            // Update picker value to match internal state
+            elDatePicker.value = formatDateKey(selectedDate);
+            loadData();
+        }
+
         // Clock
         function updateClock() {
             const now = new Date();
@@ -296,36 +358,48 @@
             const minutes = now.getMinutes();
             const ampm = hours >= 12 ? 'PM' : 'AM';
             hours = hours % 12;
-            hours = hours ? hours : 12; // the hour '0' should be '12'
+            hours = hours ? hours : 12; 
             const strTime = hours + ':' + (minutes < 10 ? '0' + minutes : minutes);
             
             const clockEl = document.getElementById('big-clock');
             clockEl.innerHTML = `<span>${strTime}</span><span class="text-sm text-stone-400 font-medium">${ampm}</span>`;
         }
         setInterval(updateClock, 1000);
-        updateClock(); // Run immediately
+        updateClock(); 
 
         function loadData() {
-             const key = `ojt_pulse_${todayStr}`;
+             const keyDate = formatDateKey(selectedDate);
+             const key = `ojt_pulse_${keyDate}`;
+             
+             // Update UI for Date
+             elDateDisplay.innerText = formatDateDisplay(selectedDate);
+             elDatePicker.value = keyDate;
+             
+             // Update Roadmap Title
+             const displayDate = formatDateDisplay(selectedDate);
+             elRoadmapTitle.innerText = displayDate === "Today" ? "Today's Roadmap" : `Roadmap for ${displayDate}`;
+
              const stored = localStorage.getItem(key);
              if (stored) {
                  dailyLog = JSON.parse(stored);
              } else {
                  dailyLog = {
-                    date: todayStr,
+                    date: keyDate,
                     deliciousFood: false,
                     hours: HOURS.reduce((acc, h) => ({ ...acc, [h]: { task: '', stress: 1, mood: 'neutral', weather: 'Sunny' } }), {})
                 };
-                saveData();
+                // We don't save immediately on load if empty to save space, but saving here ensures structure exists
+                // saveData(); 
              }
              renderUI();
              showApp();
         }
 
         function saveData() {
-            const key = `ojt_pulse_${todayStr}`;
+            const keyDate = formatDateKey(selectedDate);
+            const key = `ojt_pulse_${keyDate}`;
             localStorage.setItem(key, JSON.stringify(dailyLog));
-            renderUI();
+            renderUI(); // Re-render primarily for analytics updates
         }
 
         function showApp() {
@@ -333,7 +407,7 @@
             setTimeout(() => {
                 elLoading.classList.add('hidden');
                 elApp.classList.remove('opacity-0');
-            }, 500);
+            }, 300);
         }
 
         // --- UPDATES ---
@@ -354,7 +428,7 @@
             renderFoodButton();
             renderTimeline();
             renderAnalytics();
-            lucide.createIcons(); // Refresh icons
+            lucide.createIcons(); 
         }
 
         function renderFoodButton() {
@@ -365,7 +439,6 @@
             const isActive = dailyLog.deliciousFood;
 
             if (isActive) {
-                // Active State: Green BG, White Text
                 btn.className = 'flex items-center gap-4 pl-5 pr-2 py-2 rounded-[1.5rem] transition-all duration-300 shadow-md bg-matcha-500 text-white shadow-matcha-200/50 hover:bg-matcha-600 border border-matcha-500';
                 
                 bg.classList.remove('bg-stone-200');
@@ -375,7 +448,6 @@
                 icon.classList.remove('text-stone-400');
                 icon.classList.add('text-white');
             } else {
-                // Inactive State: White BG, Stone Text
                 btn.className = 'flex items-center gap-4 pl-5 pr-2 py-2 rounded-[1.5rem] transition-all duration-300 shadow-md bg-white text-stone-600 hover:bg-stone-50 border border-stone-100';
                 
                 bg.classList.add('bg-stone-200');
@@ -388,14 +460,12 @@
         }
 
         function renderTimeline() {
-            // Save focus if user is typing
             const activeId = document.activeElement ? document.activeElement.id : null;
             let cursorLoc = null;
             if(activeId && document.activeElement.tagName === 'INPUT') {
                 cursorLoc = document.activeElement.selectionStart;
             }
 
-            // Input Placeholders cycling
             const examples = [
                 "Coding a new feature",
                 "Reading documentation",
@@ -414,7 +484,6 @@
                 const data = dailyLog.hours?.[hour] || {};
                 const isActive = data.task && data.task.length > 0;
                 
-                // Weather Buttons HTML (Always Visible)
                 const weatherHtml = WEATHER.map(w => {
                     const isSelected = data.weather === w.label;
                     const classes = isSelected 
@@ -428,7 +497,6 @@
                     `;
                 }).join('');
 
-                // Mood Buttons HTML
                 const moodHtml = MOODS.map(m => {
                     const isSelected = data.mood === m.value;
                     const classes = isSelected 
@@ -445,18 +513,12 @@
 
                 const stressVal = data.stress || 1;
                 const stressColor = stressVal > 3 ? 'bg-rose-50 text-rose-500' : 'bg-matcha-100 text-matcha-600';
-
-                // Pick deterministic example for placeholder
                 const placeholder = `e.g. ${examples[index % examples.length]}`;
 
                 return `
                 <div class="group relative pb-6 transition-all fade-in">
-                    <!-- Removed Side Time, Line, and Dot as requested -->
-                    
                     <div class="w-full bg-white/60 backdrop-blur-md p-6 rounded-[2rem] shadow-sm border border-white/60 transition-all duration-300 hover:bg-white/80 hover:shadow-xl hover:shadow-matcha-200/20 ${isActive ? 'ring-1 ring-matcha-200' : ''}">
                         <div class="flex flex-col gap-5">
-                            
-                            <!-- Header: Time & Weather -->
                             <div class="flex items-center justify-between">
                                 <span class="text-3xl font-black text-stone-700 tracking-tight">${hour}</span>
                                 <div class="flex gap-1.5 p-1.5 bg-stone-100/50 rounded-xl">
@@ -464,7 +526,6 @@
                                 </div>
                             </div>
 
-                            <!-- Input Section with Label -->
                             <div class="space-y-2">
                                 <label for="input-${hour}" class="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">What are you doing?</label>
                                 <div class="relative group/input">
@@ -482,9 +543,7 @@
                                 </div>
                             </div>
 
-                            <!-- Controls -->
                             <div class="flex flex-col lg:flex-row gap-6 pt-2">
-                                <!-- Stress -->
                                 <div class="flex-1 space-y-3">
                                     <div class="flex justify-between items-center px-1">
                                         <span class="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Stress</span>
@@ -497,7 +556,6 @@
                                         class="w-full h-2 bg-stone-100 rounded-lg"
                                     />
                                 </div>
-                                <!-- Moods -->
                                 <div class="space-y-3">
                                     <p class="text-[10px] font-bold text-stone-400 uppercase tracking-widest px-1">Vibe Check</p>
                                     <div class="flex gap-2">
@@ -511,7 +569,6 @@
                 `;
             }).join('');
 
-            // Restore focus
             if(activeId) {
                 const el = document.getElementById(activeId);
                 if(el) {
@@ -537,28 +594,24 @@
                 return acc;
             }, {});
 
-            // Update Text Stats
             document.getElementById('stat-productivity').innerText = `${productivity}%`;
             document.getElementById('stat-tension').innerText = avgStress;
 
-            // Render Dots for Tension
             const dotsContainer = document.getElementById('tension-dots');
             dotsContainer.innerHTML = [1,2,3,4,5].map(i => 
                 `<div class="w-1.5 h-1.5 rounded-full ${i <= Math.round(avgStress) ? 'bg-rose-400' : 'bg-rose-100'}"></div>`
             ).join('');
 
-            // Render Pie Chart
             renderPieChart(moodCounts, logs.length);
         }
 
         function renderPieChart(moodCounts, total) {
             const chartEl = document.getElementById('mood-pie-chart');
             if (total === 0) {
-                chartEl.style.background = '#e7e5e4'; // Empty gray
+                chartEl.style.background = '#e7e5e4'; 
                 return;
             }
 
-            let gradientStr = '';
             let currentPercent = 0;
             const segments = [];
 
@@ -574,10 +627,8 @@
             chartEl.style.background = `conic-gradient(${segments.join(', ')})`;
         }
 
-        // --- EVENT HANDLERS (Manual Attachments) ---
         document.getElementById('btn-food').addEventListener('click', toggleFood);
         
-        // Init Data Load
         loadData();
 
     </script>
