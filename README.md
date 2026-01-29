@@ -1,4 +1,4 @@
-OJT Pulse Tracker 🧠✨
+OJT Pulse Tracker 🧠✨ https://auricosmo.github.io/ojtpulse/
 
 A beautiful, aesthetic, and privacy-focused web application designed for On-the-Job Training (OJT) students to track their hourly productivity, stress levels, and overall well-being.
 
