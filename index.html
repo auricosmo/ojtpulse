@@ -36,7 +36,7 @@
     <style>
         body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         
-        /* Custom Range Slider (Webkit) */
+        /* Custom Range Slider */
         input[type='range'] { -webkit-appearance: none; background: transparent; }
         input[type='range']::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -58,8 +58,6 @@
             background: #f5f5f4;
             border-radius: 9999px;
         }
-
-        /* Custom Range Slider (Firefox) */
         input[type='range']::-moz-range-thumb {
             width: 18px; 
             height: 18px;
@@ -78,7 +76,6 @@
             border-radius: 9999px;
         }
         
-        /* Hide scrollbar */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -101,48 +98,54 @@
             backdrop-filter: blur(4px);
         }
 
-        #intro-toast { animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes slideIn { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .cal-dot { width: 4px; height: 4px; border-radius: 50%; margin-top: 2px; }
         
-        /* Calendar Styles */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .calendar-day { 
-            aspect-ratio: 1; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 0.75rem; 
-            border-radius: 0.5rem; 
-            cursor: pointer;
-            transition: all 0.2s;
+            aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            font-size: 0.75rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; position: relative;
         }
         .calendar-day:hover:not(.active) { background-color: #f5f5f4; }
         .calendar-day.active { background-color: #77B42B; color: white; font-weight: bold; }
         .calendar-day.today { border: 1px solid #77B42B; color: #77B42B; }
         .calendar-day.empty { pointer-events: none; }
+
+        .auth-overlay {
+            position: absolute; inset: 0; background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px); z-index: 60; display: flex; align-items: center; justify-content: center;
+        }
     </style>
 </head>
 <body class="bg-[#FDFCF8] text-stone-800 font-sans min-h-screen relative selection:bg-matcha-200 selection:text-matcha-600 pb-20">
 
-    <!-- Fixed Ambient Background -->
     <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-matcha-200/30 blur-[120px]"></div>
         <div class="absolute top-[40%] right-[-5%] w-[40%] h-[40%] rounded-full bg-sky-100/40 blur-[100px]"></div>
         <div class="absolute bottom-[-10%] left-[20%] w-[60%] h-[40%] rounded-full bg-rose-100/30 blur-[120px]"></div>
     </div>
 
-    <!-- Loading State -->
     <div id="loading" class="fixed inset-0 z-50 flex items-center justify-center bg-stone-50 transition-opacity duration-500">
         <div class="flex flex-col items-center gap-4">
             <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-matcha-500"></div>
-            <p id="loading-text" class="text-stone-400 text-sm font-medium animate-pulse">Loading...</p>
+            <p id="loading-text" class="text-stone-400 text-sm font-medium animate-pulse">Syncing...</p>
         </div>
     </div>
 
-    <!-- App Container -->
+    <div id="auth-screen" class="hidden auth-overlay">
+        <div class="bg-white p-8 rounded-[2rem] shadow-2xl border border-white/60 text-center max-w-sm mx-4 fade-in-init">
+            <div class="w-16 h-16 bg-matcha-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-matcha-600">
+                <i data-lucide="cloud" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-2xl font-black text-stone-800 mb-2">Sync Your OJT</h2>
+            <p class="text-stone-500 text-sm mb-6">Sign in to track your attendance and progress across devices.</p>
+            <button id="btn-login-google" class="w-full py-3 bg-stone-800 hover:bg-stone-900 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-3">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/pwa_google_logo.png" alt="G" class="w-5 h-5"/>
+                <span>Continue with Google</span>
+            </button>
+        </div>
+    </div>
+
     <div id="app" class="relative z-10 opacity-0 transition-opacity duration-500">
-        
-        <!-- Header -->
         <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-white/60 shadow-sm shadow-stone-200/5 mb-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -154,40 +157,32 @@
                         <p class="text-[10px] text-stone-400 font-bold uppercase tracking-widest mt-0.5" id="header-date">Today</p>
                     </div>
                 </div>
-
                 <div class="flex items-center gap-2">
-                    <button id="btn-data-modal" class="p-2 hover:bg-stone-100 rounded-xl text-stone-400 hover:text-sky-500 transition-colors" title="Backup & Data">
-                        <i data-lucide="download" class="w-5 h-5"></i>
+                    <div id="user-profile" class="hidden items-center gap-2 px-2 py-1 bg-stone-50 rounded-full border border-stone-200">
+                        <img id="user-avatar" src="" alt="User" class="w-6 h-6 rounded-full bg-stone-200" />
+                        <span id="user-name-display" class="text-xs font-bold text-stone-600 pr-1 max-w-[60px] truncate hidden sm:block"></span>
+                    </div>
+                    <button id="btn-logout" class="p-2 hover:bg-rose-50 rounded-xl text-stone-400 hover:text-rose-500 transition-colors" title="Logout">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
                     </button>
-                    <!-- Clock -->
-                    <div id="big-clock" class="text-lg font-black text-stone-700 tracking-tight bg-white/50 px-3 py-1.5 rounded-xl border border-white/60 shadow-sm flex items-center gap-1.5 hidden sm:flex">
-                        <span>--:--</span>
-                        <span class="text-xs text-stone-400 font-medium">AM</span>
+                    <div id="big-clock" class="text-lg font-black text-stone-700 tracking-tight bg-white/50 px-3 py-1.5 rounded-xl border border-white/60 shadow-sm flex items-center gap-1.5 hidden sm:flex min-w-[100px] justify-center">
+                        <span>--:--</span><span class="text-xs text-stone-400 font-medium">AM</span>
                     </div>
                 </div>
             </div>
         </header>
 
-        <!-- Main Layout: Grid -->
         <main class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 fade-in-init grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            <!-- Sidebar (Right Side on Desktop, Top on Mobile) -->
             <aside class="lg:col-span-4 space-y-6 lg:order-2 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto no-scrollbar">
                 
-                <!-- 1. OJT Progress Widget -->
                 <div class="bg-white/70 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-white/60 relative group">
                     <div class="flex justify-between items-start mb-3">
                         <div class="flex items-center gap-2">
-                            <div class="p-1.5 bg-matcha-100 rounded-lg text-matcha-600">
-                                <i data-lucide="briefcase" class="w-4 h-4"></i>
-                            </div>
+                            <div class="p-1.5 bg-matcha-100 rounded-lg text-matcha-600"><i data-lucide="briefcase" class="w-4 h-4"></i></div>
                             <h3 class="font-bold text-stone-700 text-sm">OJT Progress</h3>
                         </div>
-                        <button id="btn-settings" class="text-stone-300 hover:text-stone-500 transition-colors">
-                            <i data-lucide="settings-2" class="w-4 h-4"></i>
-                        </button>
+                        <button id="btn-settings" class="text-stone-300 hover:text-stone-500 transition-colors"><i data-lucide="settings-2" class="w-4 h-4"></i></button>
                     </div>
-                    
                     <div class="mb-2 flex justify-between items-end">
                         <span class="text-3xl font-black text-stone-800" id="progress-percent">0%</span>
                         <span class="text-xs text-stone-500 font-medium mb-1" id="progress-hours">0 / 0 hrs</span>
@@ -195,10 +190,9 @@
                     <div class="w-full bg-stone-100 rounded-full h-2.5 overflow-hidden">
                         <div id="progress-bar" class="bg-matcha-500 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
                     </div>
-                    <p class="text-[10px] text-stone-400 mt-2 font-medium" id="progress-days">Day 0 of Internship</p>
+                    <p class="text-[10px] text-stone-400 mt-2 font-medium" id="progress-days">Day 0</p>
                 </div>
 
-                <!-- 2. Mini Calendar Widget -->
                 <div class="bg-white/70 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-white/60">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="font-bold text-stone-700 text-sm" id="cal-month-year">...</h3>
@@ -210,18 +204,19 @@
                     <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-stone-400 font-bold mb-2">
                         <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
                     </div>
-                    <div id="mini-calendar" class="calendar-grid">
-                        <!-- JS Generated -->
+                    <div id="mini-calendar" class="calendar-grid"></div>
+                    <div class="flex justify-center gap-3 mt-4 text-[9px] text-stone-400 font-medium">
+                        <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-matcha-500"></div>P</div>
+                        <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>HD</div>
+                        <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div>A</div>
+                        <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-stone-400"></div>O</div>
                     </div>
                 </div>
 
-                <!-- 3. Analytics Summary (Moved from Top) -->
                 <div class="bg-white/70 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-white/60 space-y-4">
                     <h3 class="font-bold text-stone-700 text-sm mb-2 flex items-center gap-2">
                         <i data-lucide="bar-chart-3" class="w-4 h-4 text-stone-400"></i> Daily Vitals
                     </h3>
-                    
-                    <!-- Attendance -->
                     <div class="p-3 bg-stone-50/50 rounded-2xl border border-stone-100/50">
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center gap-2">
@@ -230,26 +225,21 @@
                             </div>
                         </div>
                         <div class="grid grid-cols-4 gap-2">
-                            <button onclick="updateAttendance('present')" id="btn-att-present" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-matcha-600 group">
-                                <i data-lucide="check-circle-2" class="w-4 h-4 mb-1"></i>
-                                <span class="text-[9px] font-bold uppercase">Present</span>
+                            <button id="btn-att-present" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-matcha-600 group">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 mb-1"></i><span class="text-[9px] font-bold uppercase">Present</span>
                             </button>
-                            <button onclick="updateAttendance('halfday')" id="btn-att-halfday" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-amber-600 group">
-                                <i data-lucide="hourglass" class="w-4 h-4 mb-1"></i>
-                                <span class="text-[9px] font-bold uppercase">Half Day</span>
+                            <button id="btn-att-halfday" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-amber-600 group">
+                                <i data-lucide="hourglass" class="w-4 h-4 mb-1"></i><span class="text-[9px] font-bold uppercase">Half Day</span>
                             </button>
-                            <button onclick="updateAttendance('absent')" id="btn-att-absent" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-rose-600 group">
-                                <i data-lucide="x-circle" class="w-4 h-4 mb-1"></i>
-                                <span class="text-[9px] font-bold uppercase">Absent</span>
+                            <button id="btn-att-absent" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-rose-600 group">
+                                <i data-lucide="x-circle" class="w-4 h-4 mb-1"></i><span class="text-[9px] font-bold uppercase">Absent</span>
                             </button>
-                            <button onclick="updateAttendance('off')" id="btn-att-off" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-stone-600 group">
-                                <i data-lucide="coffee" class="w-4 h-4 mb-1"></i>
-                                <span class="text-[9px] font-bold uppercase">Off</span>
+                            <button id="btn-att-off" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-stone-600 group">
+                                <i data-lucide="coffee" class="w-4 h-4 mb-1"></i><span class="text-[9px] font-bold uppercase">Off</span>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Tension -->
                     <div class="flex items-center justify-between p-3 bg-rose-50/50 rounded-2xl border border-rose-100/50">
                         <div class="flex items-center gap-3">
                             <div class="p-2 bg-white rounded-xl text-rose-500 shadow-sm"><i data-lucide="heart" class="w-4 h-4"></i></div>
@@ -261,7 +251,6 @@
                         </div>
                     </div>
 
-                    <!-- Mood Pie -->
                     <div class="flex items-center justify-between p-3 bg-violet-50/50 rounded-2xl border border-violet-100/50">
                         <div class="flex items-center gap-3">
                             <div class="p-2 bg-white rounded-xl text-violet-500 shadow-sm"><i data-lucide="smile" class="w-4 h-4"></i></div>
@@ -271,109 +260,70 @@
                     </div>
                 </div>
 
-                <!-- 4. Scratchpad -->
                 <div class="bg-amber-50/80 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-amber-100/50">
                     <h3 class="font-bold text-amber-800 text-sm mb-2 flex items-center gap-2">
                         <i data-lucide="sticky-note" class="w-4 h-4 text-amber-500"></i> Quick Scratchpad
                     </h3>
-                    <textarea id="scratchpad" class="w-full bg-white/50 border-none rounded-xl p-3 text-sm text-stone-600 placeholder-amber-800/30 focus:ring-2 focus:ring-amber-200 focus:bg-white transition-all resize-none h-32 no-scrollbar leading-relaxed" placeholder="Jot down quick notes, reminders, or coffee orders here..."></textarea>
+                    <textarea id="scratchpad" class="w-full bg-white/50 border-none rounded-xl p-3 text-sm text-stone-600 placeholder-amber-800/30 focus:ring-2 focus:ring-amber-200 focus:bg-white transition-all resize-none h-32 no-scrollbar leading-relaxed" placeholder="Jot down quick notes..."></textarea>
                 </div>
-
             </aside>
 
-            <!-- Main Timeline (Left on Desktop) -->
             <section class="lg:col-span-8 lg:order-1 space-y-6">
-                
-                <!-- Welcome & Date Header -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                     <div>
                         <h2 class="text-3xl font-black text-stone-800 tracking-tight flex items-center gap-2">
-                            Hi, <input type="text" id="user-display-name" value="Student" class="bg-transparent border-b-2 border-dashed border-matcha-300 focus:border-matcha-500 outline-none text-stone-800 min-w-[80px] w-auto transition-colors p-0 m-0"/>
+                            Hi, <span id="welcome-name">Student</span>
                         </h2>
-                        <p class="text-stone-500 font-medium text-sm" id="roadmap-title">Let's log today.</p>
-                    </div>
-                    
-                    <button id="btn-food" class="flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-white text-stone-600 hover:bg-stone-50 border border-stone-100 w-full sm:w-auto justify-between sm:justify-start">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="coffee" id="icon-food" class="w-4 h-4 text-stone-400 transition-colors duration-300"></i>
-                            <span class="font-bold text-xs">Yummy Food?</span>
+                        <div class="flex items-center gap-2 mt-1">
+                            <button id="btn-prev-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                            <div class="relative group cursor-pointer">
+                                <span id="roadmap-title" class="text-stone-500 font-medium text-sm hover:text-matcha-600 transition-colors">Today's Roadmap</span>
+                                <input type="date" id="date-picker-input" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                            </div>
+                            <button id="btn-next-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
                         </div>
+                    </div>
+                    <button id="btn-food" class="flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-white text-stone-600 hover:bg-stone-50 border border-stone-100 w-full sm:w-auto justify-between sm:justify-start">
+                        <div class="flex items-center gap-2"><i data-lucide="coffee" id="icon-food" class="w-4 h-4 text-stone-400 transition-colors duration-300"></i><span class="font-bold text-xs">Yummy Food?</span></div>
                         <div id="toggle-food-bg" class="w-10 h-6 rounded-full relative transition-colors duration-300 bg-stone-200">
                             <div id="toggle-food-dot" class="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 translate-x-1"></div>
                         </div>
                     </button>
                 </div>
-
-                <!-- Hourly Cards Container -->
-                <div id="timeline-container" class="space-y-4 pb-20">
-                    <!-- JS Injected -->
-                </div>
+                <div id="timeline-container" class="space-y-4 pb-20"></div>
             </section>
-
         </main>
     </div>
 
-    <!-- Intro / Warning Floating Toast -->
-    <div id="intro-toast" class="fixed bottom-6 right-6 max-w-sm w-[calc(100%-3rem)] bg-white/95 backdrop-blur-xl p-5 rounded-2xl shadow-2xl shadow-stone-900/10 border border-stone-200 z-50 transform transition-all duration-500 hidden">
-        <div class="flex items-start gap-4">
-            <div class="p-2.5 bg-amber-50 text-amber-500 rounded-xl shrink-0">
-                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-            </div>
-            <div>
-                <h4 class="font-bold text-stone-800 mb-1">Important: Data Safety</h4>
-                <p class="text-xs text-stone-500 leading-relaxed mb-3">
-                    Your logs are saved in this browser's cache. 
-                    <span class="font-bold text-amber-600">Clearing your browser history/cache will delete all your progress.</span>
-                </p>
-                <div class="flex gap-2">
-                    <button id="btn-intro-gotit" class="text-xs font-bold text-stone-400 hover:text-stone-600 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors">Got it</button>
-                    <button id="btn-intro-backup" class="text-xs font-bold text-sky-600 bg-sky-50 hover:bg-sky-100 px-3 py-2 rounded-lg transition-colors">Backup Now</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Data Management Modal -->
+    <!-- Data Modal -->
     <div id="modal-data" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/20 backdrop-blur-md opacity-0 transition-opacity duration-300">
         <div class="bg-white/95 backdrop-blur-xl rounded-[2rem] p-8 w-full max-w-md shadow-2xl border border-white/50 transform scale-95 transition-transform duration-300">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-xl font-bold text-stone-800">Manage Data</h3>
-                <button id="btn-close-data" class="p-2 hover:bg-stone-100 rounded-full text-stone-400 transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
+                <button id="btn-close-data" class="p-2 hover:bg-stone-100 rounded-full text-stone-400 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <div class="space-y-4">
                 <div class="p-4 bg-sky-50 rounded-2xl border border-sky-100">
-                    <h4 class="font-bold text-sky-700 mb-1 flex items-center gap-2">
-                        <i data-lucide="download" class="w-4 h-4"></i> Export Backup
-                    </h4>
-                    <p class="text-xs text-sky-600/80 mb-3">Save all your logs to a JSON file.</p>
-                    <button id="btn-export-all" class="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-xl text-sm transition-colors shadow-sm shadow-sky-200">
-                        Download All Data
-                    </button>
+                    <h4 class="font-bold text-sky-700 mb-1 flex items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Export Backup</h4>
+                    <p class="text-xs text-sky-600/80 mb-3">Save all your logs (from cloud) to a JSON file.</p>
+                    <button id="btn-export-all" class="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-xl text-sm transition-colors shadow-sm shadow-sky-200">Download All Data</button>
                 </div>
                 <div class="p-4 bg-matcha-100/50 rounded-2xl border border-matcha-200">
-                    <h4 class="font-bold text-matcha-600 mb-1 flex items-center gap-2">
-                        <i data-lucide="upload" class="w-4 h-4"></i> Import Backup
-                    </h4>
-                    <p class="text-xs text-matcha-600/80 mb-3">Restore your data from a file.</p>
+                    <h4 class="font-bold text-matcha-600 mb-1 flex items-center gap-2"><i data-lucide="upload" class="w-4 h-4"></i> Import Backup</h4>
+                    <p class="text-xs text-matcha-600/80 mb-3">Restore data to cloud from a file.</p>
                     <input type="file" id="import-file" accept=".json" class="hidden" />
-                    <button id="btn-import-trigger" class="w-full py-2.5 bg-white border border-matcha-300 text-matcha-600 hover:bg-matcha-50 font-bold rounded-xl text-sm transition-colors">
-                        Select File to Restore
-                    </button>
+                    <button id="btn-import-trigger" class="w-full py-2.5 bg-white border border-matcha-300 text-matcha-600 hover:bg-matcha-50 font-bold rounded-xl text-sm transition-colors">Select File to Restore</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- OJT Settings Modal -->
+    <!-- Settings Modal -->
     <div id="modal-settings" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/20 backdrop-blur-md opacity-0 transition-opacity duration-300">
         <div class="bg-white/95 backdrop-blur-xl rounded-[2rem] p-8 w-full max-w-md shadow-2xl border border-white/50 transform scale-95 transition-transform duration-300">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-xl font-bold text-stone-800">OJT Settings</h3>
-                <button id="btn-close-settings" class="p-2 hover:bg-stone-100 rounded-full text-stone-400 transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
+                <button id="btn-close-settings" class="p-2 hover:bg-stone-100 rounded-full text-stone-400 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <div class="space-y-4">
                 <div>
@@ -384,619 +334,619 @@
                     <label class="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-2">Required Hours</label>
                     <input type="number" id="setting-total-hours" placeholder="e.g. 600" class="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-stone-700 outline-none focus:ring-2 focus:ring-matcha-400/50">
                 </div>
-                <button id="btn-save-settings" class="w-full py-3 bg-matcha-500 hover:bg-matcha-600 text-white font-bold rounded-xl transition-colors shadow-lg shadow-matcha-200 mt-2">
-                    Save Changes
-                </button>
+                <button id="btn-save-settings" class="w-full py-3 bg-matcha-500 hover:bg-matcha-600 text-white font-bold rounded-xl transition-colors shadow-lg shadow-matcha-200 mt-2">Save Changes</button>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- CONSTANTS ---
-            const HOURS = [
-                "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", 
-                "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"
-            ];
-            const MOODS = [
-                { emoji: '😊', label: 'Happy', value: 'happy' },
-                { emoji: '😐', label: 'Neutral', value: 'neutral' },
-                { emoji: '😫', label: 'Stressed', value: 'stressed' },
-                { emoji: '😴', label: 'Tired', value: 'tired' },
-                { emoji: '🔥', label: 'On Fire', value: 'productive' }
-            ];
-            const moodColors = { 'happy': '#77B42B', 'neutral': '#a8a29e', 'stressed': '#F43F5E', 'tired': '#8B5CF6', 'productive': '#F59E0B' };
-            const stressColors = { 1: '#77B42B', 2: '#a3e635', 3: '#facc15', 4: '#fb923c', 5: '#ef4444' };
-            const WEATHER = [
-                { icon: 'sun', label: 'Sunny', color: 'text-amber-400' },
-                { icon: 'cloud', label: 'Cloudy', color: 'text-stone-400' },
-                { icon: 'cloud-rain', label: 'Rainy', color: 'text-sky-400' },
-                { icon: 'cloud-lightning', label: 'Stormy', color: 'text-violet-400' }
-            ];
+    <!-- Script Module -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+        import { getFirestore, doc, onSnapshot, setDoc, getDoc, collection, getDocs, writeBatch } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
-            // --- STATE ---
-            let selectedDate = new Date();
-            let currentMonth = new Date(); 
-            let dailyLog = {};
-            let userName = localStorage.getItem('ojt_pulse_username') || 'Student';
-            let ojtSettings = JSON.parse(localStorage.getItem('ojt_pulse_settings')) || { startDate: '', totalHours: 600 };
+        // --- FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyBJhEWSJ8Tz2DBwychFeQVlhXCYD1D8YLY",
+          authDomain: "ojt-pulse-tracker-backen-160ad.firebaseapp.com",
+          projectId: "ojt-pulse-tracker-backen-160ad",
+          storageBucket: "ojt-pulse-tracker-backen-160ad.firebasestorage.app",
+          messagingSenderId: "859757491435",
+          appId: "1:859757491435:web:8da39f9119e83cc8b03aae"
+        };
 
-            // --- DOM ELEMENTS ---
-            const elApp = document.getElementById('app');
-            const elLoading = document.getElementById('loading');
-            const elTimeline = document.getElementById('timeline-container');
-            const elUserDisplayName = document.getElementById('user-display-name');
-            const elHeaderDate = document.getElementById('header-date');
-            const elRoadmapTitle = document.getElementById('roadmap-title');
-            const elScratchpad = document.getElementById('scratchpad');
-            const elProgressPercent = document.getElementById('progress-percent');
-            const elProgressHours = document.getElementById('progress-hours');
-            const elProgressBar = document.getElementById('progress-bar');
-            const elProgressDays = document.getElementById('progress-days');
-            const elStatProductivity = document.getElementById('stat-productivity');
-            const elStatTension = document.getElementById('stat-tension');
-            const elTensionDots = document.getElementById('tension-dots');
-            const elMoodPie = document.getElementById('mood-pie-chart');
-            const elDatePicker = document.getElementById('date-picker-input');
-            const elDateDisplay = document.getElementById('current-date-display');
-            const elBigClock = document.getElementById('big-clock');
-            const elCalMonthYear = document.getElementById('cal-month-year');
-            const elMiniCalendar = document.getElementById('mini-calendar');
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'ojt-pulse-v1';
 
-            // --- SAFE LISTENER HELPER ---
-            const safeAddListener = (id, event, handler) => {
-                const el = document.getElementById(id);
-                if (el) el.addEventListener(event, handler);
-            };
+        // --- CONSTANTS ---
+        const HOURS = [
+            "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", 
+            "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"
+        ];
+        const MOODS = [
+            { emoji: '😊', label: 'Happy', value: 'happy' },
+            { emoji: '😐', label: 'Neutral', value: 'neutral' },
+            { emoji: '😫', label: 'Stressed', value: 'stressed' },
+            { emoji: '😴', label: 'Tired', value: 'tired' },
+            { emoji: '🔥', label: 'On Fire', value: 'productive' }
+        ];
+        const stressColors = { 1: '#77B42B', 2: '#a3e635', 3: '#facc15', 4: '#fb923c', 5: '#ef4444' };
+        const moodColors = { 'happy': '#77B42B', 'neutral': '#a8a29e', 'stressed': '#F43F5E', 'tired': '#8B5CF6', 'productive': '#F59E0B' };
+        const WEATHER = [
+            { icon: 'sun', label: 'Sunny', color: 'text-amber-400' },
+            { icon: 'cloud', label: 'Cloudy', color: 'text-stone-400' },
+            { icon: 'cloud-rain', label: 'Rainy', color: 'text-sky-400' },
+            { icon: 'cloud-lightning', label: 'Stormy', color: 'text-violet-400' }
+        ];
 
-            // --- FUNCTIONS DEFINITIONS ---
+        // --- STATE ---
+        let currentUser = null;
+        let selectedDate = new Date();
+        let currentMonth = new Date(); 
+        let dailyLog = {};
+        let ojtSettings = { startDate: '', totalHours: 600 };
+        let allLogsCache = {};
+        let scratchTimeout;
 
-            // Expose slider style update globally for inline usage
-            window.updateSliderColor = (input) => {
-                const val = input.value;
-                const color = stressColors[val];
-                input.style.setProperty('--thumb-color', color);
-            };
+        // --- ELEMENTS ---
+        const elApp = document.getElementById('app');
+        const elLoading = document.getElementById('loading');
+        const elAuthScreen = document.getElementById('auth-screen');
+        const elTimeline = document.getElementById('timeline-container');
+        const elHeaderDate = document.getElementById('header-date');
+        const elRoadmapTitle = document.getElementById('roadmap-title');
+        const elScratchpad = document.getElementById('scratchpad');
+        const elProgressPercent = document.getElementById('progress-percent');
+        const elProgressHours = document.getElementById('progress-hours');
+        const elProgressBar = document.getElementById('progress-bar');
+        const elProgressDays = document.getElementById('progress-days');
+        const elStatTension = document.getElementById('stat-tension');
+        const elTensionDots = document.getElementById('tension-dots');
+        const elMoodPie = document.getElementById('mood-pie-chart');
+        const elDatePicker = document.getElementById('date-picker-input');
+        const elBigClock = document.getElementById('big-clock');
+        const elCalMonthYear = document.getElementById('cal-month-year');
+        const elMiniCalendar = document.getElementById('mini-calendar');
+        const elUserProfile = document.getElementById('user-profile');
+        const elUserAvatar = document.getElementById('user-avatar');
+        const elUserNameDisplay = document.getElementById('user-name-display');
+        const elWelcomeName = document.getElementById('welcome-name');
+        
+        const modalSettings = document.getElementById('modal-settings');
+        const modalData = document.getElementById('modal-data');
 
-            function formatDateKey(date) { return date.toISOString().split('T')[0]; }
-            function formatDateDisplay(date) {
-                const today = new Date();
-                const todayStr = formatDateKey(today);
-                const dateStr = formatDateKey(date);
-                const yesterday = new Date(today);
-                yesterday.setDate(yesterday.getDate() - 1);
-                const yesterdayStr = formatDateKey(yesterday);
+        // --- HELPER FUNCTIONS ---
+        const safeAddListener = (id, event, handler) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener(event, handler);
+        };
 
-                if (dateStr === todayStr) return "Today";
-                if (dateStr === yesterdayStr) return "Yesterday";
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        function formatDateKey(date) { 
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDateDisplay(date) {
+            const today = new Date();
+            const todayStr = formatDateKey(today);
+            const dateStr = formatDateKey(date);
+            
+            // Calculate yesterday
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = formatDateKey(yesterday);
+
+            if (dateStr === todayStr) return "Today";
+            if (dateStr === yesterdayStr) return "Yesterday";
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        window.updateSliderColor = (input) => {
+            const val = input.value;
+            const color = stressColors[val];
+            input.style.setProperty('--thumb-color', color);
+        };
+
+        function changeDate(days) {
+            selectedDate.setDate(selectedDate.getDate() + days);
+            currentMonth = new Date(selectedDate);
+            subscribeToDate();
+        }
+
+        function changeMonth(delta) {
+            currentMonth.setMonth(currentMonth.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function toggleDataModal(show) {
+            const inner = modalData.querySelector('div');
+            if (show) {
+                modalData.classList.remove('hidden');
+                setTimeout(() => { modalData.classList.remove('opacity-0'); inner.classList.remove('scale-95'); }, 10);
+            } else {
+                modalData.classList.add('opacity-0'); inner.classList.add('scale-95');
+                setTimeout(() => { modalData.classList.add('hidden'); }, 300);
             }
+        }
 
-            function changeDate(days) {
-                selectedDate.setDate(selectedDate.getDate() + days);
-                currentMonth = new Date(selectedDate);
-                loadData();
+        function toggleSettingsModal(show) {
+            const inner = modalSettings.querySelector('div');
+            if(show) {
+                document.getElementById('setting-start-date').value = ojtSettings.startDate;
+                document.getElementById('setting-total-hours').value = ojtSettings.totalHours;
+                modalSettings.classList.remove('hidden');
+                setTimeout(() => { modalSettings.classList.remove('opacity-0'); inner.classList.remove('scale-95'); }, 10);
+            } else {
+                modalSettings.classList.add('opacity-0'); inner.classList.add('scale-95');
+                setTimeout(() => { modalSettings.classList.add('hidden'); }, 300);
             }
+        }
 
-            function changeMonth(delta) {
-                currentMonth.setMonth(currentMonth.getMonth() + delta);
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const [time, ampm] = timeString.split(' ');
+            if (elBigClock) elBigClock.innerHTML = `<span>${time}</span><span class="text-xs text-stone-400 font-medium">${ampm}</span>`;
+        }
+
+        function showApp() {
+            elLoading.classList.add('opacity-0');
+            setTimeout(() => {
+                elLoading.classList.add('hidden');
+                elApp.classList.remove('opacity-0');
+            }, 300);
+        }
+
+        // --- AUTH ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                elAuthScreen.classList.add('hidden');
+                elUserProfile.classList.remove('hidden');
+                elUserProfile.classList.add('flex');
+                if(user.photoURL) elUserAvatar.src = user.photoURL;
+                elUserNameDisplay.innerText = user.displayName || 'Student';
+                elWelcomeName.innerText = user.displayName ? user.displayName.split(' ')[0] : 'Student';
+                
+                await initSettings();
+                await fetchAllLogs();
+                subscribeToDate();
+                showApp();
+            } else {
+                currentUser = null;
+                elAuthScreen.classList.remove('hidden');
+                elLoading.classList.add('hidden');
+            }
+        });
+
+        async function handleLogin() {
+            try {
+                const provider = new GoogleAuthProvider();
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error("Login failed", error);
+                alert("Login failed: " + error.message);
+            }
+        }
+
+        // --- FIRESTORE LOGIC ---
+        async function initSettings() {
+            if (!currentUser) return;
+            const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'user_config', 'settings');
+            try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) ojtSettings = docSnap.data();
+                else setDoc(docRef, ojtSettings);
+                
+                const scratchRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'user_config', 'scratchpad');
+                getDoc(scratchRef).then(snap => {
+                    if(snap.exists() && elScratchpad) elScratchpad.value = snap.data().text || '';
+                });
+            } catch (e) { console.error("Settings error", e); }
+        }
+
+        async function saveSettings() {
+            if (!currentUser) return;
+            ojtSettings.startDate = document.getElementById('setting-start-date').value;
+            ojtSettings.totalHours = document.getElementById('setting-total-hours').value;
+            
+            const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'user_config', 'settings');
+            await setDoc(docRef, ojtSettings);
+            updateProgress();
+            toggleSettingsModal(false);
+        }
+
+        async function fetchAllLogs() {
+            if (!currentUser) return;
+            const colRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'daily_logs');
+            try {
+                const snapshot = await getDocs(colRef);
+                allLogsCache = {};
+                snapshot.forEach(doc => { allLogsCache[doc.id] = doc.data(); });
                 renderCalendar();
-            }
+                updateProgress();
+            } catch (e) { console.error("Fetch logs error", e); }
+        }
 
-            function renderCalendar() {
-                if(!elCalMonthYear || !elMiniCalendar) return;
-                const year = currentMonth.getFullYear();
-                const month = currentMonth.getMonth();
-                elCalMonthYear.innerText = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        let unsubscribeDate = null;
+        function subscribeToDate() {
+            if (!currentUser) return;
+            if (unsubscribeDate) unsubscribeDate();
 
-                const firstDay = new Date(year, month, 1).getDay();
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const todayStr = formatDateKey(new Date());
-                const selectedStr = formatDateKey(selectedDate);
+            const dateKey = formatDateKey(selectedDate);
+            const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'daily_logs', dateKey);
 
-                elMiniCalendar.innerHTML = '';
+            elHeaderDate.innerText = formatDateDisplay(selectedDate);
+            if(elDatePicker) elDatePicker.value = dateKey;
+            const displayDate = formatDateDisplay(selectedDate);
+            elRoadmapTitle.innerText = displayDate === "Today" ? "Today's Roadmap" : `Roadmap for ${displayDate}`;
 
-                for (let i = 0; i < firstDay; i++) {
-                    elMiniCalendar.innerHTML += `<div class="calendar-day empty"></div>`;
-                }
-
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const date = new Date(year, month, day);
-                    const dateStr = formatDateKey(date);
-                    let classes = 'calendar-day';
-                    if (dateStr === todayStr) classes += ' today';
-                    if (dateStr === selectedStr) classes += ' active';
-
-                    const el = document.createElement('div');
-                    el.className = classes;
-                    el.innerText = day;
-                    el.onclick = () => {
-                        selectedDate = date;
-                        loadData();
-                    };
-                    elMiniCalendar.appendChild(el);
-                }
-            }
-
-            function updateProgress() {
-                if(!elProgressPercent) return;
-                const totalRequired = parseInt(ojtSettings.totalHours) || 600;
-                let filledHoursCount = 0;
-                
-                // Track based on attendance status (Present = 8hrs, Half Day = 4hrs)
-                for(let i=0; i<localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if(key.startsWith('ojt_pulse_')) {
-                        try {
-                            const dayData = JSON.parse(localStorage.getItem(key));
-                            const status = dayData.attendance || 'absent'; // Default to absent if undefined
-                            
-                            if (status === 'present') {
-                                filledHoursCount += 8;
-                            } else if (status === 'halfday') {
-                                filledHoursCount += 4;
-                            }
-                        } catch(e) {}
-                    }
-                }
-
-                const percent = Math.min(100, Math.round((filledHoursCount / totalRequired) * 100));
-                elProgressPercent.innerText = `${percent}%`;
-                elProgressHours.innerText = `${filledHoursCount} / ${totalRequired} hrs`;
-                elProgressBar.style.width = `${percent}%`;
-
-                if(ojtSettings.startDate) {
-                    const start = new Date(ojtSettings.startDate);
-                    const now = new Date();
-                    const diffTime = now - start;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-                    elProgressDays.innerText = diffDays > 0 ? `Day ${diffDays} of Internship` : `Starts in ${Math.abs(diffDays)} days`;
-                } else {
-                    elProgressDays.innerText = `Set Start Date in Settings`;
-                }
-            }
-
-            function loadData() {
-                const keyDate = formatDateKey(selectedDate);
-                const key = `ojt_pulse_${keyDate}`;
-                
-                if(elHeaderDate) elHeaderDate.innerText = formatDateDisplay(selectedDate);
-                if(elDatePicker) elDatePicker.value = keyDate;
-                
-                const displayDate = formatDateDisplay(selectedDate);
-                if(elRoadmapTitle) elRoadmapTitle.innerText = displayDate === "Today" ? "Today's Roadmap" : `Roadmap for ${displayDate}`;
-
-                const stored = localStorage.getItem(key);
-                if (stored) {
-                    dailyLog = JSON.parse(stored);
+            unsubscribeDate = onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    dailyLog = docSnap.data();
                 } else {
                     dailyLog = {
-                        date: keyDate,
+                        date: dateKey,
                         deliciousFood: false,
-                        attendance: 'absent', // Default attendance is absent
+                        attendance: 'absent',
                         hours: HOURS.reduce((acc, h) => ({ ...acc, [h]: { task: '', stress: 1, mood: 'neutral', weather: 'Sunny' } }), {})
                     };
                 }
-                
-                renderCalendar();
+                allLogsCache[dateKey] = dailyLog;
                 renderUI();
+                renderCalendar();
                 updateProgress();
-                showApp();
+            });
+        }
+
+        async function pushToFirestore() {
+            if (!currentUser) return;
+            const dateKey = formatDateKey(selectedDate);
+            const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'daily_logs', dateKey);
+            await setDoc(docRef, dailyLog);
+        }
+
+        function exportData() {
+            if(!allLogsCache || Object.keys(allLogsCache).length === 0) {
+                alert("No data to export or not fully synced yet.");
+                return;
             }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allLogsCache, null, 2));
+            const a = document.createElement('a');
+            a.href = dataStr;
+            a.download = `OJT_Backup_${formatDateKey(new Date())}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
 
-            function saveData() {
-                const keyDate = formatDateKey(selectedDate);
-                const key = `ojt_pulse_${keyDate}`;
-                localStorage.setItem(key, JSON.stringify(dailyLog));
-                renderUI(); // Re-render for analytics
-                updateProgress();
-            }
-
-            function showApp() {
-                elLoading.classList.add('opacity-0');
-                setTimeout(() => {
-                    elLoading.classList.add('hidden');
-                    elApp.classList.remove('opacity-0');
-                }, 300);
-            }
-
-            // Expose updateHour globally for inline HTML events
-            window.updateHour = (hour, field, value) => {
-                if (!dailyLog.hours) return;
-                if (field === 'stress') value = parseInt(value);
-                dailyLog.hours[hour] = { ...dailyLog.hours[hour], [field]: value };
-                saveData();
-            };
-
-            function toggleFood() {
-                dailyLog.deliciousFood = !dailyLog.deliciousFood;
-                saveData();
-            }
-
-            // Expose attendance updater
-            window.updateAttendance = (status) => {
-                dailyLog.attendance = status;
-                saveData();
-            };
-
-            function renderUI() {
-                renderFoodButton();
-                renderTimeline();
-                renderAnalytics();
-                lucide.createIcons(); 
-            }
-
-            function renderFoodButton() {
-                const btn = document.getElementById('btn-food');
-                const bg = document.getElementById('toggle-food-bg');
-                const dot = document.getElementById('toggle-food-dot');
-                const icon = document.getElementById('icon-food');
-                if(!btn) return;
-
-                const isActive = dailyLog.deliciousFood;
-
-                if (isActive) {
-                    btn.className = 'flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-matcha-500 text-white shadow-matcha-200/50 hover:bg-matcha-600 border border-matcha-500 w-full sm:w-auto justify-between sm:justify-start';
-                    bg.classList.remove('bg-stone-200');
-                    bg.classList.add('bg-white/20');
-                    dot.classList.remove('translate-x-1');
-                    dot.classList.add('translate-x-5'); 
-                    icon.classList.remove('text-stone-400');
-                    icon.classList.add('text-white');
-                } else {
-                    btn.className = 'flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-white text-stone-600 hover:bg-stone-50 border border-stone-100 w-full sm:w-auto justify-between sm:justify-start';
-                    bg.classList.add('bg-stone-200');
-                    bg.classList.remove('bg-white/20');
-                    dot.classList.add('translate-x-1');
-                    dot.classList.remove('translate-x-5');
-                    icon.classList.add('text-stone-400');
-                    icon.classList.remove('text-white');
-                }
-            }
-
-            function renderTimeline() {
-                if(!elTimeline) return;
-                const activeId = document.activeElement ? document.activeElement.id : null;
-                let cursorLoc = null;
-                if(activeId && document.activeElement.tagName === 'INPUT') {
-                    cursorLoc = document.activeElement.selectionStart;
-                }
-
-                const examples = [
-                    "Drafting the project documentation",
-                    "Debugging the API connection issue",
-                    "Daily team stand-up meeting",
-                    "Learning React hooks and context",
-                    "Refactoring the legacy codebase",
-                    "Code review for the payment module",
-                    "Coffee break & quick stretch ☕",
-                    "Updating the Kanban task board",
-                    "Reading up on Tailwind CSS best practices",
-                    "Responding to client emails",
-                    "Planning the next sprint cycle"
-                ];
-
-                elTimeline.innerHTML = HOURS.map((hour, index) => {
-                    const data = dailyLog.hours?.[hour] || {};
-                    const isActive = data.task && data.task.length > 0;
+        function importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    // Batch write to Firestore
+                    const batch = writeBatch(db);
+                    let count = 0;
                     
-                    const weatherHtml = WEATHER.map(w => {
-                        const isSelected = data.weather === w.label;
-                        const classes = isSelected 
-                            ? `bg-white shadow-sm ${w.color}` 
-                            : 'text-stone-300 hover:text-stone-400';
-                        return `
-                            <button onclick="updateHour('${hour}', 'weather', '${w.label}')" 
-                                class="p-1.5 rounded-lg transition-all ${classes}" title="${w.label}">
-                                <i data-lucide="${w.icon}" class="w-3.5 h-3.5"></i>
-                            </button>
-                        `;
-                    }).join('');
+                    Object.keys(data).forEach(dateKey => {
+                        // Validate key format roughly
+                        if(dateKey.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                           const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'daily_logs', dateKey);
+                           batch.set(docRef, data[dateKey]);
+                           count++;
+                        }
+                    });
+                    
+                    if(count > 0) {
+                        await batch.commit();
+                        alert(`Restored ${count} daily logs successfully!`);
+                        location.reload();
+                    } else {
+                        alert("No valid log entries found in file.");
+                    }
+                } catch (err) { console.error(err); alert('Error restoring data: ' + err.message); }
+            };
+            reader.readAsText(file);
+        }
 
-                    const moodHtml = MOODS.map(m => {
-                        const isSelected = data.mood === m.value;
-                        const classes = isSelected 
-                            ? 'bg-white shadow-md scale-110 -translate-y-1' 
-                            : 'bg-stone-50 text-stone-300 hover:bg-stone-100 hover:text-stone-500';
-                        return `
-                            <button onclick="updateHour('${hour}', 'mood', '${m.value}')" 
-                                class="w-9 h-9 rounded-xl flex items-center justify-center text-base transition-all duration-200 ${classes}" 
-                                title="${m.label}">
-                                ${m.emoji}
-                            </button>
-                        `;
-                    }).join('');
+        // --- ACTIONS ---
+        window.updateHour = (hour, field, value) => {
+            if (!dailyLog.hours) return;
+            if (field === 'stress') value = parseInt(value);
+            dailyLog.hours[hour] = { ...dailyLog.hours[hour], [field]: value };
+            pushToFirestore();
+        };
 
-                    const stressVal = data.stress || 1;
-                    const currentStressColor = stressColors[stressVal];
-                    const placeholder = `e.g. ${examples[index % examples.length]}`;
+        window.toggleFood = () => {
+            dailyLog.deliciousFood = !dailyLog.deliciousFood;
+            pushToFirestore();
+        };
 
-                    return `
-                    <div class="group relative">
-                        <div class="w-full bg-white/70 backdrop-blur-md p-5 rounded-[1.8rem] shadow-sm border border-white/60 transition-all duration-300 hover:bg-white/90 hover:shadow-lg hover:shadow-matcha-200/10 ${isActive ? 'ring-1 ring-matcha-200' : ''}">
-                            <div class="flex flex-col gap-4">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-2xl font-black text-stone-700 tracking-tight">${hour}</span>
-                                    <div class="flex gap-1 p-1 bg-stone-100/50 rounded-lg">
-                                        ${weatherHtml}
+        window.updateAttendance = (status) => {
+            dailyLog.attendance = status;
+            pushToFirestore();
+        };
+
+        // --- RENDERERS ---
+        function renderUI() {
+            renderFoodButton();
+            renderTimeline();
+            renderAnalytics();
+            lucide.createIcons();
+        }
+
+        function renderCalendar() {
+            if(!elCalMonthYear || !elMiniCalendar) return;
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            elCalMonthYear.innerText = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const todayStr = formatDateKey(new Date());
+            const selectedStr = formatDateKey(selectedDate);
+
+            elMiniCalendar.innerHTML = '';
+            for (let i = 0; i < firstDay; i++) {
+                elMiniCalendar.innerHTML += `<div class="calendar-day empty"></div>`;
+            }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const cellDate = new Date(year, month, day);
+                const dateStr = formatDateKey(cellDate);
+                let classes = 'calendar-day';
+                if (dateStr === todayStr) classes += ' today';
+                if (dateStr === selectedStr) classes += ' active';
+
+                const el = document.createElement('div');
+                el.className = classes;
+                const numSpan = document.createElement('span');
+                numSpan.innerText = day;
+                el.appendChild(numSpan);
+
+                const dayData = allLogsCache[dateStr];
+                if (dayData && dayData.attendance && dayData.attendance !== 'absent') {
+                    let dotColor = '';
+                    if (dayData.attendance === 'present') dotColor = 'bg-matcha-500';
+                    else if (dayData.attendance === 'halfday') dotColor = 'bg-amber-500';
+                    else if (dayData.attendance === 'off') dotColor = 'bg-stone-400';
+                    if(dotColor) {
+                        const dot = document.createElement('div');
+                        dot.className = `cal-dot ${dotColor}`;
+                        el.appendChild(dot);
+                    }
+                }
+                el.onclick = () => {
+                    selectedDate = new Date(year, month, day);
+                    subscribeToDate();
+                };
+                elMiniCalendar.appendChild(el);
+            }
+        }
+
+        function updateProgress() {
+            if(!elProgressPercent) return;
+            const totalRequired = parseInt(ojtSettings.totalHours) || 600;
+            let filledHoursCount = 0;
+            Object.values(allLogsCache).forEach(log => {
+                const status = log.attendance || 'absent';
+                if (status === 'present') filledHoursCount += 8;
+                else if (status === 'halfday') filledHoursCount += 4;
+            });
+            const percent = Math.min(100, Math.round((filledHoursCount / totalRequired) * 100));
+            elProgressPercent.innerText = `${percent}%`;
+            elProgressHours.innerText = `${filledHoursCount} / ${totalRequired} hrs`;
+            elProgressBar.style.width = `${percent}%`;
+
+            if(ojtSettings.startDate) {
+                const startParts = ojtSettings.startDate.split('-');
+                const startDateLocal = new Date(startParts[0], startParts[1]-1, startParts[2]);
+                const now = new Date();
+                const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const diffDays = Math.ceil((todayLocal - startDateLocal) / (1000 * 60 * 60 * 24));
+                const displayDay = diffDays + 1;
+                elProgressDays.innerText = displayDay > 0 ? `Day ${displayDay} of Internship` : `Starts in ${Math.abs(displayDay)} days`;
+            } else {
+                elProgressDays.innerText = `Set Start Date in Settings`;
+            }
+        }
+
+        function renderFoodButton() {
+            const btn = document.getElementById('btn-food');
+            const bg = document.getElementById('toggle-food-bg');
+            const dot = document.getElementById('toggle-food-dot');
+            const icon = document.getElementById('icon-food');
+            if(!btn) return;
+            const isActive = dailyLog.deliciousFood;
+            if (isActive) {
+                btn.className = 'flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-matcha-500 text-white shadow-matcha-200/50 hover:bg-matcha-600 border border-matcha-500 w-full sm:w-auto justify-between sm:justify-start';
+                bg.classList.remove('bg-stone-200'); bg.classList.add('bg-white/20');
+                dot.classList.remove('translate-x-1'); dot.classList.add('translate-x-5');
+                icon.classList.remove('text-stone-400'); icon.classList.add('text-white');
+            } else {
+                btn.className = 'flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-white text-stone-600 hover:bg-stone-50 border border-stone-100 w-full sm:w-auto justify-between sm:justify-start';
+                bg.classList.add('bg-stone-200'); bg.classList.remove('bg-white/20');
+                dot.classList.add('translate-x-1'); dot.classList.remove('translate-x-5');
+                icon.classList.add('text-stone-400'); icon.classList.remove('text-white');
+            }
+        }
+
+        function renderAttendanceState() {
+            const status = dailyLog.attendance || 'absent';
+            ['btn-att-present', 'btn-att-halfday', 'btn-att-absent', 'btn-att-off'].forEach(id => {
+                const btn = document.getElementById(id);
+                if(btn) btn.className = "flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-stone-600 group";
+            });
+            const activeBtn = document.getElementById(`btn-att-${status}`);
+            if (activeBtn) {
+                let activeClass = "flex flex-col items-center justify-center p-2 rounded-xl border shadow-sm transition-all ";
+                if(status === 'present') activeClass += "bg-matcha-100 text-matcha-600 border-matcha-200";
+                else if(status === 'halfday') activeClass += "bg-amber-100 text-amber-600 border-amber-200";
+                else if(status === 'absent') activeClass += "bg-rose-100 text-rose-600 border-rose-200";
+                else if(status === 'off') activeClass += "bg-stone-200 text-stone-600 border-stone-300";
+                activeBtn.className = activeClass;
+            }
+        }
+
+        function renderTimeline() {
+            if(!elTimeline) return;
+            const activeId = document.activeElement ? document.activeElement.id : null;
+            let cursorLoc = null;
+            if(activeId && document.activeElement.tagName === 'INPUT') cursorLoc = document.activeElement.selectionStart;
+
+            const examples = ["Drafting docs", "API Debugging", "Team Standup", "React Study", "Refactoring", "Code Review", "Coffee Break ☕", "Kanban Update", "CSS Tweaks", "Client Email", "Sprint Plan"];
+
+            elTimeline.innerHTML = HOURS.map((hour, index) => {
+                const data = dailyLog.hours?.[hour] || {};
+                const isActive = data.task && data.task.length > 0;
+                
+                const weatherHtml = WEATHER.map(w => {
+                    const isSelected = data.weather === w.label;
+                    const classes = isSelected ? `bg-white shadow-sm ${w.color}` : 'text-stone-300 hover:text-stone-400';
+                    return `<button onclick="updateHour('${hour}', 'weather', '${w.label}')" class="p-1.5 rounded-lg transition-all ${classes}" title="${w.label}"><i data-lucide="${w.icon}" class="w-3.5 h-3.5"></i></button>`;
+                }).join('');
+
+                const moodHtml = MOODS.map(m => {
+                    const isSelected = data.mood === m.value;
+                    const classes = isSelected ? 'bg-white shadow-md scale-110 -translate-y-1' : 'bg-stone-50 text-stone-300 hover:bg-stone-100 hover:text-stone-500';
+                    return `<button onclick="updateHour('${hour}', 'mood', '${m.value}')" class="w-9 h-9 rounded-xl flex items-center justify-center text-base transition-all duration-200 ${classes}" title="${m.label}">${m.emoji}</button>`;
+                }).join('');
+
+                const stressVal = data.stress || 1;
+                const currentStressColor = stressColors[stressVal];
+                const placeholder = `e.g. ${examples[index % examples.length]}`;
+
+                return `
+                <div class="group relative">
+                    <div class="w-full bg-white/70 backdrop-blur-md p-5 rounded-[1.8rem] shadow-sm border border-white/60 transition-all duration-300 hover:bg-white/90 hover:shadow-lg hover:shadow-matcha-200/10 ${isActive ? 'ring-1 ring-matcha-200' : ''}">
+                        <div class="flex flex-col gap-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-2xl font-black text-stone-700 tracking-tight">${hour}</span>
+                                <div class="flex gap-1 p-1 bg-stone-100/50 rounded-lg">${weatherHtml}</div>
+                            </div>
+                            <div class="space-y-1.5">
+                                <label for="input-${hour}" class="text-[9px] font-bold text-stone-400 uppercase tracking-widest ml-1">Activity</label>
+                                <div class="relative group/input">
+                                    <input id="input-${hour}" type="text" placeholder="${placeholder}" value="${data.task || ''}" onchange="updateHour('${hour}', 'task', this.value)" class="w-full bg-stone-50/50 hover:bg-white border border-stone-200/50 rounded-2xl px-4 py-3 text-sm text-stone-700 placeholder:text-stone-400 focus:ring-2 focus:ring-matcha-400/30 focus:bg-white focus:border-matcha-200 transition-all outline-none font-medium" />
+                                    <div class="absolute right-4 top-3.5 transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}">
+                                        <i data-lucide="check-circle-2" class="w-5 h-5 text-matcha-500 fill-matcha-100"></i>
                                     </div>
                                 </div>
-
-                                <div class="space-y-1.5">
-                                    <label for="input-${hour}" class="text-[9px] font-bold text-stone-400 uppercase tracking-widest ml-1">Activity</label>
-                                    <div class="relative group/input">
-                                        <input 
-                                            id="input-${hour}"
-                                            type="text"
-                                            placeholder="${placeholder}"
-                                            value="${data.task || ''}"
-                                            onchange="updateHour('${hour}', 'task', this.value)"
-                                            class="w-full bg-stone-50/50 hover:bg-white border border-stone-200/50 rounded-2xl px-4 py-3 text-sm text-stone-700 placeholder:text-stone-400 focus:ring-2 focus:ring-matcha-400/30 focus:bg-white focus:border-matcha-200 transition-all outline-none font-medium"
-                                        />
-                                        <div class="absolute right-4 top-3.5 transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}">
-                                            <i data-lucide="check-circle-2" class="w-5 h-5 text-matcha-500 fill-matcha-100"></i>
-                                        </div>
+                            </div>
+                            <div class="flex flex-col lg:flex-row gap-4 pt-1">
+                                <div class="flex-1 space-y-2">
+                                    <div class="flex justify-between items-center px-1">
+                                        <span class="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Stress</span>
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md" style="background-color: ${currentStressColor}20; color: ${currentStressColor};">${stressVal} / 5</span>
                                     </div>
+                                    <input type="range" min="1" max="5" step="1" value="${stressVal}" style="--thumb-color: ${currentStressColor}" onchange="updateHour('${hour}', 'stress', this.value)" oninput="updateSliderColor(this)" class="w-full h-1.5 bg-stone-100 rounded-lg" />
                                 </div>
-
-                                <div class="flex flex-col lg:flex-row gap-4 pt-1">
-                                    <div class="flex-1 space-y-2">
-                                        <div class="flex justify-between items-center px-1">
-                                            <span class="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Stress</span>
-                                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md" style="background-color: ${currentStressColor}20; color: ${currentStressColor};">${stressVal} / 5</span>
-                                        </div>
-                                        <input 
-                                            type="range" min="1" max="5" step="1"
-                                            value="${stressVal}"
-                                            style="--thumb-color: ${currentStressColor}"
-                                            onchange="updateHour('${hour}', 'stress', this.value)"
-                                            oninput="updateSliderColor(this)"
-                                            class="w-full h-1.5 bg-stone-100 rounded-lg"
-                                        />
-                                    </div>
-                                    <div class="space-y-2">
-                                        <p class="text-[9px] font-bold text-stone-400 uppercase tracking-widest px-1">Vibe</p>
-                                        <div class="flex gap-1.5">
-                                            ${moodHtml}
-                                        </div>
-                                    </div>
+                                <div class="space-y-2">
+                                    <p class="text-[9px] font-bold text-stone-400 uppercase tracking-widest px-1">Vibe</p>
+                                    <div class="flex gap-1.5">${moodHtml}</div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    `;
+                </div>`;
+            }).join('');
+
+            if(activeId) {
+                const el = document.getElementById(activeId);
+                if(el) { el.focus(); if(cursorLoc !== null) el.setSelectionRange(cursorLoc, cursorLoc); }
+            }
+        }
+
+        function renderAnalytics() {
+            if (!dailyLog.hours) return;
+            const logs = Object.values(dailyLog.hours);
+            const totalStress = logs.reduce((acc, l) => acc + (l.stress || 1), 0);
+            const avgStress = (totalStress / logs.length).toFixed(1);
+            const moodCounts = logs.reduce((acc, l) => {
+                const m = l.mood || 'neutral';
+                acc[m] = (acc[m] || 0) + 1;
+                return acc;
+            }, {});
+
+            if(elStatTension) elStatTension.innerText = avgStress;
+            if(elTensionDots) {
+                elTensionDots.innerHTML = [1,2,3,4,5].map(i => {
+                    const isActive = i <= Math.round(avgStress);
+                    const colorClass = isActive ? 'bg-rose-400' : 'bg-rose-100';
+                    return `<div class="w-1.5 h-1.5 rounded-full ${colorClass}"></div>`;
                 }).join('');
-
-                if(activeId) {
-                    const el = document.getElementById(activeId);
-                    if(el) {
-                        el.focus();
-                        if(cursorLoc !== null) el.setSelectionRange(cursorLoc, cursorLoc);
-                    }
-                }
             }
+            renderPieChart(moodCounts, logs.length);
+            renderAttendanceState();
+        }
 
-            function renderAnalytics() {
-                if (!dailyLog.hours) return;
-                const logs = Object.values(dailyLog.hours);
-                // Removed Productivity Calculation
-                const totalStress = logs.reduce((acc, l) => acc + (l.stress || 1), 0);
-                const avgStress = (totalStress / logs.length).toFixed(1);
-                const moodCounts = logs.reduce((acc, l) => {
-                    const m = l.mood || 'neutral';
-                    acc[m] = (acc[m] || 0) + 1;
-                    return acc;
-                }, {});
-
-                // Updated: Removed productivity render, added attendance render logic
-                if(elStatTension) elStatTension.innerText = avgStress;
-
-                if(elTensionDots) {
-                    elTensionDots.innerHTML = [1,2,3,4,5].map(i => {
-                        const isActive = i <= Math.round(avgStress);
-                        const colorClass = isActive ? 'bg-rose-400' : 'bg-rose-100';
-                        return `<div class="w-1.5 h-1.5 rounded-full ${colorClass}"></div>`;
-                    }).join('');
-                }
-
-                renderPieChart(moodCounts, logs.length);
-                renderAttendanceState();
-            }
-
-            function renderAttendanceState() {
-                const status = dailyLog.attendance || 'absent'; // Changed default to absent
-                const btns = {
-                    'present': document.getElementById('btn-att-present'),
-                    'halfday': document.getElementById('btn-att-halfday'),
-                    'absent': document.getElementById('btn-att-absent'),
-                    'off': document.getElementById('btn-att-off')
-                };
-                
-                // Reset all
-                Object.values(btns).forEach(btn => {
-                    if(btn) {
-                        btn.className = "flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-stone-600 group";
-                    }
-                });
-
-                // Set Active
-                const activeBtn = btns[status];
-                if (activeBtn) {
-                    let activeClass = "flex flex-col items-center justify-center p-2 rounded-xl border shadow-sm transition-all ";
-                    if(status === 'present') activeClass += "bg-matcha-100 text-matcha-600 border-matcha-200";
-                    else if(status === 'halfday') activeClass += "bg-amber-100 text-amber-600 border-amber-200";
-                    else if(status === 'absent') activeClass += "bg-rose-100 text-rose-600 border-rose-200";
-                    else if(status === 'off') activeClass += "bg-stone-200 text-stone-600 border-stone-300";
-                    
-                    activeBtn.className = activeClass;
-                }
-            }
-
-            function renderPieChart(moodCounts, total) {
-                if(!elMoodPie) return;
-                if (total === 0) {
-                    elMoodPie.style.background = '#e7e5e4'; 
-                    return;
-                }
-                let currentPercent = 0;
-                const segments = [];
-                Object.keys(moodCounts).forEach(mood => {
-                    const count = moodCounts[mood];
-                    const percent = (count / total) * 100;
-                    const color = moodColors[mood] || '#e7e5e4';
-                    segments.push(`${color} ${currentPercent}% ${currentPercent + percent}%`);
-                    currentPercent += percent;
-                });
-                elMoodPie.style.background = `conic-gradient(${segments.join(', ')})`;
-            }
-
-            // --- DATA MANAGEMENT ---
-            const modalData = document.getElementById('modal-data');
-            const modalSettings = document.getElementById('modal-settings');
-            const introToast = document.getElementById('intro-toast');
-
-            function toggleDataModal(show) {
-                const inner = modalData.querySelector('div');
-                if (show) {
-                    modalData.classList.remove('hidden');
-                    setTimeout(() => { modalData.classList.remove('opacity-0'); inner.classList.remove('scale-95'); }, 10);
-                } else {
-                    modalData.classList.add('opacity-0'); inner.classList.add('scale-95');
-                    setTimeout(() => { modalData.classList.add('hidden'); }, 300);
-                }
-            };
-            window.openDataModal = () => toggleDataModal(true);
-
-            function toggleSettingsModal(show) {
-                const inner = modalSettings.querySelector('div');
-                if(show) {
-                    document.getElementById('setting-start-date').value = ojtSettings.startDate;
-                    document.getElementById('setting-total-hours').value = ojtSettings.totalHours;
-                    modalSettings.classList.remove('hidden');
-                    setTimeout(() => { modalSettings.classList.remove('opacity-0'); inner.classList.remove('scale-95'); }, 10);
-                } else {
-                    modalSettings.classList.add('opacity-0'); inner.classList.add('scale-95');
-                    setTimeout(() => { modalSettings.classList.add('hidden'); }, 300);
-                }
-            }
-            
-            function saveSettings() {
-                ojtSettings.startDate = document.getElementById('setting-start-date').value;
-                ojtSettings.totalHours = document.getElementById('setting-total-hours').value;
-                localStorage.setItem('ojt_pulse_settings', JSON.stringify(ojtSettings));
-                updateProgress();
-                toggleSettingsModal(false);
-            }
-
-            function dismissIntro() {
-                introToast.style.opacity = '0';
-                introToast.style.transform = 'translateY(20px)';
-                setTimeout(() => introToast.classList.add('hidden'), 500);
-                localStorage.setItem('ojt_pulse_seen_intro', 'true');
-            };
-            setTimeout(() => { if (!localStorage.getItem('ojt_pulse_seen_intro')) introToast.classList.remove('hidden'); }, 1500);
-
-            function exportData() {
-                const allData = {};
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key.startsWith('ojt_pulse_')) {
-                        allData[key] = JSON.parse(localStorage.getItem(key));
-                    }
-                }
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allData, null, 2));
-                const a = document.createElement('a');
-                a.href = dataStr;
-                a.download = `OJT_Backup_${formatDateKey(new Date())}.json`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-            }
-
-            function importData(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        Object.keys(data).forEach(k => { if(k.startsWith('ojt_pulse_')) localStorage.setItem(k, JSON.stringify(data[k])); });
-                        alert('Restored!'); location.reload();
-                    } catch (err) { console.error(err); alert('Error reading file.'); }
-                };
-                reader.readAsText(file);
-            }
-
-            function updateClock() {
-                const now = new Date();
-                let hours = now.getHours();
-                const minutes = now.getMinutes();
-                const ampm = hours >= 12 ? 'PM' : 'AM';
-                hours = hours % 12;
-                hours = hours ? hours : 12; 
-                const strTime = hours + ':' + (minutes < 10 ? '0' + minutes : minutes);
-                if (elBigClock) {
-                    elBigClock.innerHTML = `<span>${strTime}</span><span class="text-xs text-stone-400 font-medium">${ampm}</span>`;
-                }
-            }
-            setInterval(updateClock, 1000);
-            updateClock(); 
-
-            // --- INITIALIZATION (LISTENERS AT THE END) ---
-            if(elUserDisplayName) elUserDisplayName.value = userName;
-            safeAddListener('user-display-name', 'input', (e) => {
-                userName = e.target.value;
-                localStorage.setItem('ojt_pulse_username', userName);
+        function renderPieChart(moodCounts, total) {
+            if(!elMoodPie) return;
+            if (total === 0) { elMoodPie.style.background = '#e7e5e4'; return; }
+            let currentPercent = 0;
+            const segments = [];
+            Object.keys(moodCounts).forEach(mood => {
+                const count = moodCounts[mood];
+                const percent = (count / total) * 100;
+                const color = moodColors[mood] || '#e7e5e4';
+                segments.push(`${color} ${currentPercent}% ${currentPercent + percent}%`);
+                currentPercent += percent;
             });
+            elMoodPie.style.background = `conic-gradient(${segments.join(', ')})`;
+        }
 
-            // Scratchpad Logic
-            if(elScratchpad) {
-                elScratchpad.value = localStorage.getItem('ojt_pulse_scratchpad') || '';
-                elScratchpad.addEventListener('input', (e) => {
-                    localStorage.setItem('ojt_pulse_scratchpad', e.target.value);
-                });
-            }
-
-            // Date Controls
-            safeAddListener('btn-prev-day', 'click', () => changeDate(-1));
-            safeAddListener('btn-next-day', 'click', () => changeDate(1));
-            if(elDatePicker) {
-                elDatePicker.addEventListener('change', (e) => {
-                    if(e.target.value) {
-                        selectedDate = new Date(e.target.value);
+        // --- LISTENERS ---
+        safeAddListener('btn-login-google', 'click', handleLogin);
+        safeAddListener('btn-logout', 'click', () => signOut(auth));
+        safeAddListener('btn-prev-day', 'click', () => changeDate(-1));
+        safeAddListener('btn-next-day', 'click', () => changeDate(1));
+        if(elDatePicker) {
+            elDatePicker.addEventListener('change', (e) => {
+                if(e.target.value) {
+                    const parts = e.target.value.split('-');
+                    if(parts.length === 3) {
+                        selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);
                         currentMonth = new Date(selectedDate);
-                        loadData();
+                        subscribeToDate();
                     }
-                });
-            }
+                }
+            });
+        }
+        safeAddListener('btn-cal-prev', 'click', () => changeMonth(-1));
+        safeAddListener('btn-cal-next', 'click', () => changeMonth(1));
+        
+        safeAddListener('btn-settings', 'click', () => toggleSettingsModal(true));
+        safeAddListener('btn-close-settings', 'click', () => toggleSettingsModal(false));
+        safeAddListener('btn-save-settings', 'click', saveSettings);
 
-            // Calendar Nav
-            safeAddListener('btn-cal-prev', 'click', () => changeMonth(-1));
-            safeAddListener('btn-cal-next', 'click', () => changeMonth(1));
+        safeAddListener('btn-data-modal', 'click', () => toggleDataModal(true));
+        safeAddListener('btn-close-data', 'click', () => toggleDataModal(false));
+        safeAddListener('btn-export-all', 'click', exportData);
+        safeAddListener('btn-import-trigger', 'click', () => document.getElementById('import-file').click());
+        safeAddListener('import-file', 'change', importData);
 
-            // Settings Button
-            safeAddListener('btn-settings', 'click', () => toggleSettingsModal(true));
-            safeAddListener('btn-close-settings', 'click', () => toggleSettingsModal(false));
-            safeAddListener('btn-save-settings', 'click', saveSettings);
+        safeAddListener('btn-food', 'click', toggleFood);
 
-            // Data Modal Buttons
-            safeAddListener('btn-data-modal', 'click', () => toggleDataModal(true));
-            safeAddListener('btn-close-data', 'click', () => toggleDataModal(false));
-            safeAddListener('btn-export-all', 'click', exportData);
-            safeAddListener('btn-import-trigger', 'click', () => document.getElementById('import-file').click());
-            safeAddListener('import-file', 'change', importData);
+        if(elScratchpad) {
+            elScratchpad.addEventListener('input', (e) => {
+                clearTimeout(scratchTimeout);
+                scratchTimeout = setTimeout(() => {
+                    if(currentUser) {
+                        const ref = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'user_config', 'scratchpad');
+                        setDoc(ref, { text: e.target.value });
+                    }
+                }, 1000);
+            });
+        }
 
-            // Food Button
-            safeAddListener('btn-food', 'click', toggleFood);
-
-            // Intro Toast
-            safeAddListener('btn-intro-gotit', 'click', dismissIntro);
-            safeAddListener('btn-intro-backup', 'click', () => { openDataModal(); dismissIntro(); });
-
-            // Initialize Data
-            loadData();
-        });
+        setInterval(updateClock, 1000);
+        updateClock();
     </script>
 </body>
 </html>
