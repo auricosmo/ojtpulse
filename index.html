@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OJT Pulse Tracker</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        matcha: { 100: '#E4F0D5', 200: '#C8E1AA', 300: '#ADD280', 400: '#92C355', 500: '#77B42B', 600: '#5F9022' },
+                        sky: { 50: '#F0F9FF', 100: '#E0F2FE', 500: '#0EA5E9', 600: '#0284C7' },
+                        rose: { 50: '#FFF1F2', 100: '#FFE4E6', 500: '#F43F5E', 600: '#E11D48' },
+                        violet: { 50: '#F5F3FF', 100: '#EDE9FE', 500: '#8B5CF6', 600: '#7C3AED' },
+                        stone: { 50: '#fafaf9', 100: '#f5f5f4', 200: '#e7e5e4', 300: '#d6d3d1', 400: '#a8a29e', 500: '#78716c', 600: '#57534e', 700: '#44403c', 800: '#292524', 900: '#1c1917' },
+                        amber: { 400: '#fbbf24', 500: '#f59e0b' }
+                    },
+                    keyframes: {
+                        wave: {
+                            '0%': { transform: 'rotate(0deg)' },
+                            '20%': { transform: 'rotate(14deg)' },
+                            '40%': { transform: 'rotate(-8deg)' },
+                            '60%': { transform: 'rotate(14deg)' },
+                            '80%': { transform: 'rotate(-4deg)' },
+                            '100%': { transform: 'rotate(10deg)' },
+                        }
+                    },
+                    animation: {
+                        wave: 'wave 2.5s infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        
+        /* Custom Range Slider */
+        input[type='range'] { -webkit-appearance: none; background: transparent; }
+        input[type='range']::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #77B42B; /* Matcha 500 */
+            border-radius: 50%;
+            border: 4px solid white;
+            box-shadow: 0 4px 6px rgba(119, 180, 43, 0.3);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: -6px; /* Align thumb */
+        }
+        input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.1); }
+        input[type='range']::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #f5f5f4;
+            border-radius: 9999px;
+        }
+        
+        /* Hide scrollbar for clean UI */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Smooth transitions */
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Pie Chart Styles */
+        .pie-chart {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #f5f5f4; /* Fallback */
+            position: relative;
+        }
+        .pie-chart::after {
+            content: "";
+            position: absolute;
+            inset: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="bg-[#FDFCF8] text-stone-800 font-sans min-h-screen relative selection:bg-matcha-200 selection:text-matcha-600 pb-32">
+
+    <!-- Fixed Ambient Background -->
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-matcha-200/30 blur-[120px]"></div>
+        <div class="absolute top-[40%] right-[-5%] w-[40%] h-[40%] rounded-full bg-sky-100/40 blur-[100px]"></div>
+        <div class="absolute bottom-[-10%] left-[20%] w-[60%] h-[40%] rounded-full bg-rose-100/30 blur-[120px]"></div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading" class="fixed inset-0 z-50 flex items-center justify-center bg-stone-50 transition-opacity duration-500">
+        <div class="flex flex-col items-center gap-4">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-matcha-500"></div>
+            <p id="loading-text" class="text-stone-400 text-sm font-medium animate-pulse">Loading...</p>
+        </div>
+    </div>
+
+    <!-- App Container -->
+    <div id="app" class="relative z-10 opacity-0 transition-opacity duration-500">
+        
+        <!-- Header -->
+        <header class="sticky top-4 z-40 mx-4 sm:mx-8 mb-8">
+            <div class="bg-white/70 backdrop-blur-xl border border-white/40 px-6 py-4 rounded-[2rem] shadow-lg shadow-stone-200/5 flex items-center justify-between max-w-4xl mx-auto">
+                <div class="flex items-center gap-4">
+                    <div class="p-2.5 bg-gradient-to-br from-matcha-200 to-matcha-100 rounded-2xl shadow-inner">
+                        <i data-lucide="brain" class="text-matcha-600 w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-black text-stone-800 leading-none tracking-tight">OJT Pulse</h1>
+                        <p class="text-[10px] text-stone-400 font-bold uppercase tracking-widest mt-1">Daily Tracker</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div id="big-clock" class="text-xl sm:text-2xl font-black text-stone-700 tracking-tight bg-white/50 px-5 py-2 rounded-2xl border border-white/60 shadow-sm flex items-center gap-2">
+                        <span>--:--</span>
+                        <span class="text-sm text-stone-400 font-medium">AM</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-4xl mx-auto px-4 sm:px-8 space-y-8 relative z-10">
+            
+            <!-- Welcome Section -->
+            <section class="bg-gradient-to-br from-[#f2f7ec] via-[#fdfcf8] to-[#ffffff] p-8 rounded-[3rem] shadow-xl shadow-stone-200/50 border border-white/60 relative overflow-hidden group">
+                <div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div>
+                        <h2 class="text-3xl font-black text-stone-800 mb-2 tracking-tight flex items-center gap-2">
+                            Hi, 
+                            <input 
+                                type="text" 
+                                id="user-display-name" 
+                                value="Student"
+                                class="bg-transparent border-b-2 border-dashed border-matcha-300 focus:border-matcha-500 outline-none text-stone-800 placeholder-stone-400 min-w-[100px] w-auto transition-colors p-0 m-0"
+                            />
+                            <span class="inline-block animate-wave origin-bottom-right">👋</span>
+                        </h2>
+                        <p class="text-stone-500 font-medium text-lg max-w-md">Let's make today productive and balanced. Don't forget to hydrate!</p>
+                    </div>
+                    
+                    <button id="btn-food" class="flex items-center gap-4 pl-5 pr-2 py-2 rounded-[1.5rem] transition-all duration-300 shadow-md bg-white text-stone-600 hover:bg-stone-50 border border-stone-100">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="coffee" id="icon-food" class="w-5 h-5 text-stone-400 transition-colors duration-300"></i>
+                            <span class="font-bold text-sm">Delicious Food?</span>
+                        </div>
+                        <div id="toggle-food-bg" class="w-12 h-8 rounded-full relative transition-colors duration-300 bg-stone-200">
+                            <div id="toggle-food-dot" class="absolute top-1 w-6 h-6 rounded-full bg-white shadow-sm transition-all duration-300 translate-x-1"></div>
+                        </div>
+                    </button>
+                </div>
+                <i data-lucide="wind" class="absolute -bottom-8 -right-8 text-matcha-200/30 w-64 h-64 -rotate-12 transition-transform duration-700 group-hover:rotate-0"></i>
+            </section>
+
+            <!-- Analytics Grid -->
+            <section class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <!-- Productivity -->
+                <div class="bg-sky-50/60 backdrop-blur-md p-6 rounded-[2.5rem] shadow-lg shadow-sky-100/50 border border-sky-100/50 flex flex-col items-center justify-center text-center h-48 group hover:bg-sky-50 transition-colors duration-300">
+                    <div class="p-4 bg-white rounded-3xl text-sky-500 shadow-sm mb-4 group-hover:scale-110 transition-transform">
+                        <i data-lucide="zap" class="w-8 h-8"></i>
+                    </div>
+                    <div>
+                        <h4 id="stat-productivity" class="text-4xl font-black text-stone-800">0%</h4>
+                        <p class="text-[10px] font-bold text-sky-400 uppercase tracking-widest mt-2">Productivity</p>
+                    </div>
+                </div>
+                
+                <!-- Tension -->
+                <div class="bg-rose-50/60 backdrop-blur-md p-6 rounded-[2.5rem] shadow-lg shadow-rose-100/50 border border-rose-100/50 flex flex-col items-center justify-center text-center h-48 group hover:bg-rose-50 transition-colors duration-300">
+                    <div class="p-4 bg-white rounded-3xl text-rose-500 shadow-sm mb-4 group-hover:scale-110 transition-transform">
+                        <i data-lucide="heart" class="w-8 h-8"></i>
+                    </div>
+                    <div>
+                        <h4 id="stat-tension" class="text-4xl font-black text-stone-800">1.0</h4>
+                        <div class="flex gap-1.5 justify-center mt-2" id="tension-dots">
+                            <!-- JS Generated Dots -->
+                        </div>
+                    </div>
+                    <p class="text-[10px] font-bold text-rose-400 uppercase tracking-widest mt-1">Avg Tension</p>
+                </div>
+
+                <!-- Vibe (Pie Chart) -->
+                <div class="bg-violet-50/60 backdrop-blur-md p-6 rounded-[2.5rem] shadow-lg shadow-violet-100/50 border border-violet-100/50 flex flex-col items-center justify-center text-center h-48 group hover:bg-violet-50 transition-colors duration-300">
+                    <div class="mb-3 relative flex items-center justify-center">
+                        <div id="mood-pie-chart" class="pie-chart shadow-sm"></div>
+                        <i data-lucide="smile" class="w-6 h-6 text-violet-500 absolute z-10"></i>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-violet-400 uppercase tracking-widest mt-1">Mood Mix</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Timeline Actions -->
+            <div class="flex items-center justify-between px-4">
+                <h3 class="text-xl font-black text-stone-800 flex items-center gap-3">
+                    <span class="w-2 h-2 bg-matcha-500 rounded-full shadow-[0_0_10px_rgba(119,180,43,0.5)]"></span>
+                    Today's Roadmap
+                </h3>
+            </div>
+
+            <!-- Timeline Container -->
+            <div id="timeline-container" class="pb-12">
+                <!-- Timeline items injected via JS -->
+            </div>
+
+            <!-- Footer -->
+            <footer class="pt-10 text-center text-stone-400 text-sm">
+                <p class="font-semibold opacity-50 mb-1">ID: <span id="user-id-display">Local</span></p>
+                <p class="opacity-70">© <span id="year"></span> OJT Pulse • Crafted for well-being</p>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // --- CONSTANTS ---
+        const HOURS = [
+            "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", 
+            "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"
+        ];
+        const MOODS = [
+            { emoji: '😊', label: 'Happy', value: 'happy' },
+            { emoji: '😐', label: 'Neutral', value: 'neutral' },
+            { emoji: '😫', label: 'Stressed', value: 'stressed' },
+            { emoji: '😴', label: 'Tired', value: 'tired' },
+            { emoji: '🔥', label: 'On Fire', value: 'productive' }
+        ];
+        
+        // Mood Colors for Pie Chart
+        const moodColors = {
+            'happy': '#77B42B', // matcha-500
+            'neutral': '#a8a29e', // stone-400
+            'stressed': '#F43F5E', // rose-500
+            'tired': '#8B5CF6', // violet-500
+            'productive': '#F59E0B' // amber-500
+        };
+
+        const WEATHER = [
+            { icon: 'sun', label: 'Sunny', color: 'text-amber-400' },
+            { icon: 'cloud', label: 'Cloudy', color: 'text-stone-400' },
+            { icon: 'cloud-rain', label: 'Rainy', color: 'text-sky-400' },
+            { icon: 'cloud-lightning', label: 'Stormy', color: 'text-violet-400' }
+        ];
+
+        // --- STATE ---
+        const todayStr = new Date().toISOString().split('T')[0];
+        let dailyLog = {};
+        let userName = localStorage.getItem('ojt_pulse_username') || 'Student';
+
+        // --- DOM ELEMENTS ---
+        const elApp = document.getElementById('app');
+        const elLoading = document.getElementById('loading');
+        const elTimeline = document.getElementById('timeline-container');
+        const elYear = document.getElementById('year');
+        const elUserId = document.getElementById('user-id-display');
+        const elUserDisplayName = document.getElementById('user-display-name');
+        
+        // --- INITIALIZATION ---
+        elYear.innerText = new Date().getFullYear();
+        elUserId.innerText = 'Guest';
+        elUserDisplayName.value = userName;
+
+        // Save username listener
+        elUserDisplayName.addEventListener('input', (e) => {
+            userName = e.target.value;
+            localStorage.setItem('ojt_pulse_username', userName);
+        });
+
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
+            const strTime = hours + ':' + (minutes < 10 ? '0' + minutes : minutes);
+            
+            const clockEl = document.getElementById('big-clock');
+            clockEl.innerHTML = `<span>${strTime}</span><span class="text-sm text-stone-400 font-medium">${ampm}</span>`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock(); // Run immediately
+
+        function loadData() {
+             const key = `ojt_pulse_${todayStr}`;
+             const stored = localStorage.getItem(key);
+             if (stored) {
+                 dailyLog = JSON.parse(stored);
+             } else {
+                 dailyLog = {
+                    date: todayStr,
+                    deliciousFood: false,
+                    hours: HOURS.reduce((acc, h) => ({ ...acc, [h]: { task: '', stress: 1, mood: 'neutral', weather: 'Sunny' } }), {})
+                };
+                saveData();
+             }
+             renderUI();
+             showApp();
+        }
+
+        function saveData() {
+            const key = `ojt_pulse_${todayStr}`;
+            localStorage.setItem(key, JSON.stringify(dailyLog));
+            renderUI();
+        }
+
+        function showApp() {
+            elLoading.classList.add('opacity-0');
+            setTimeout(() => {
+                elLoading.classList.add('hidden');
+                elApp.classList.remove('opacity-0');
+            }, 500);
+        }
+
+        // --- UPDATES ---
+        window.updateHour = (hour, field, value) => {
+            if (!dailyLog.hours) return;
+            if (field === 'stress') value = parseInt(value);
+            dailyLog.hours[hour] = { ...dailyLog.hours[hour], [field]: value };
+            saveData();
+        };
+
+        window.toggleFood = () => {
+            dailyLog.deliciousFood = !dailyLog.deliciousFood;
+            saveData();
+        };
+
+        // --- RENDERERS ---
+        function renderUI() {
+            renderFoodButton();
+            renderTimeline();
+            renderAnalytics();
+            lucide.createIcons(); // Refresh icons
+        }
+
+        function renderFoodButton() {
+            const btn = document.getElementById('btn-food');
+            const bg = document.getElementById('toggle-food-bg');
+            const dot = document.getElementById('toggle-food-dot');
+            const icon = document.getElementById('icon-food');
+            const isActive = dailyLog.deliciousFood;
+
+            if (isActive) {
+                // Active State: Green BG, White Text
+                btn.className = 'flex items-center gap-4 pl-5 pr-2 py-2 rounded-[1.5rem] transition-all duration-300 shadow-md bg-matcha-500 text-white shadow-matcha-200/50 hover:bg-matcha-600 border border-matcha-500';
+                
+                bg.classList.remove('bg-stone-200');
+                bg.classList.add('bg-white/20');
+                dot.classList.remove('translate-x-1');
+                dot.classList.add('translate-x-5');
+                icon.classList.remove('text-stone-400');
+                icon.classList.add('text-white');
+            } else {
+                // Inactive State: White BG, Stone Text
+                btn.className = 'flex items-center gap-4 pl-5 pr-2 py-2 rounded-[1.5rem] transition-all duration-300 shadow-md bg-white text-stone-600 hover:bg-stone-50 border border-stone-100';
+                
+                bg.classList.add('bg-stone-200');
+                bg.classList.remove('bg-white/20');
+                dot.classList.add('translate-x-1');
+                dot.classList.remove('translate-x-5');
+                icon.classList.add('text-stone-400');
+                icon.classList.remove('text-white');
+            }
+        }
+
+        function renderTimeline() {
+            // Save focus if user is typing
+            const activeId = document.activeElement ? document.activeElement.id : null;
+            let cursorLoc = null;
+            if(activeId && document.activeElement.tagName === 'INPUT') {
+                cursorLoc = document.activeElement.selectionStart;
+            }
+
+            // Input Placeholders cycling
+            const examples = [
+                "Coding a new feature",
+                "Reading documentation",
+                "Team stand-up meeting",
+                "Debugging an issue",
+                "Client call",
+                "Code review",
+                "Coffee break ☕",
+                "Updating task board",
+                "Learning a new tool",
+                "Refactoring code",
+                "Writing emails"
+            ];
+
+            elTimeline.innerHTML = HOURS.map((hour, index) => {
+                const data = dailyLog.hours?.[hour] || {};
+                const isActive = data.task && data.task.length > 0;
+                
+                // Weather Buttons HTML (Always Visible)
+                const weatherHtml = WEATHER.map(w => {
+                    const isSelected = data.weather === w.label;
+                    const classes = isSelected 
+                        ? `bg-white shadow-sm ${w.color}` 
+                        : 'text-stone-300 hover:text-stone-400';
+                    return `
+                        <button onclick="updateHour('${hour}', 'weather', '${w.label}')" 
+                            class="p-2 rounded-lg transition-all ${classes}" title="${w.label}">
+                            <i data-lucide="${w.icon}" class="w-4 h-4"></i>
+                        </button>
+                    `;
+                }).join('');
+
+                // Mood Buttons HTML
+                const moodHtml = MOODS.map(m => {
+                    const isSelected = data.mood === m.value;
+                    const classes = isSelected 
+                        ? 'bg-white shadow-md scale-110 -translate-y-1' 
+                        : 'bg-stone-50 text-stone-300 hover:bg-stone-100 hover:text-stone-500';
+                    return `
+                        <button onclick="updateHour('${hour}', 'mood', '${m.value}')" 
+                            class="w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all duration-200 ${classes}" 
+                            title="${m.label}">
+                            ${m.emoji}
+                        </button>
+                    `;
+                }).join('');
+
+                const stressVal = data.stress || 1;
+                const stressColor = stressVal > 3 ? 'bg-rose-50 text-rose-500' : 'bg-matcha-100 text-matcha-600';
+
+                // Pick deterministic example for placeholder
+                const placeholder = `e.g. ${examples[index % examples.length]}`;
+
+                return `
+                <div class="group relative pb-6 transition-all fade-in">
+                    <!-- Removed Side Time, Line, and Dot as requested -->
+                    
+                    <div class="w-full bg-white/60 backdrop-blur-md p-6 rounded-[2rem] shadow-sm border border-white/60 transition-all duration-300 hover:bg-white/80 hover:shadow-xl hover:shadow-matcha-200/20 ${isActive ? 'ring-1 ring-matcha-200' : ''}">
+                        <div class="flex flex-col gap-5">
+                            
+                            <!-- Header: Time & Weather -->
+                            <div class="flex items-center justify-between">
+                                <span class="text-3xl font-black text-stone-700 tracking-tight">${hour}</span>
+                                <div class="flex gap-1.5 p-1.5 bg-stone-100/50 rounded-xl">
+                                    ${weatherHtml}
+                                </div>
+                            </div>
+
+                            <!-- Input Section with Label -->
+                            <div class="space-y-2">
+                                <label for="input-${hour}" class="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">What are you doing?</label>
+                                <div class="relative group/input">
+                                    <input 
+                                        id="input-${hour}"
+                                        type="text"
+                                        placeholder="${placeholder}"
+                                        value="${data.task || ''}"
+                                        onchange="updateHour('${hour}', 'task', this.value)"
+                                        class="w-full bg-stone-50/50 hover:bg-white border border-stone-200/50 rounded-2xl px-5 py-4 text-stone-700 placeholder:text-stone-400 focus:ring-2 focus:ring-matcha-400/30 focus:bg-white focus:border-matcha-200 transition-all outline-none font-medium"
+                                    />
+                                    <div class="absolute right-4 top-4 transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}">
+                                        <i data-lucide="check-circle-2" class="w-6 h-6 text-matcha-500 fill-matcha-100"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Controls -->
+                            <div class="flex flex-col lg:flex-row gap-6 pt-2">
+                                <!-- Stress -->
+                                <div class="flex-1 space-y-3">
+                                    <div class="flex justify-between items-center px-1">
+                                        <span class="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Stress</span>
+                                        <span class="text-xs font-bold px-2 py-0.5 rounded-md ${stressColor}">${stressVal} / 5</span>
+                                    </div>
+                                    <input 
+                                        type="range" min="1" max="5" step="1"
+                                        value="${stressVal}"
+                                        onchange="updateHour('${hour}', 'stress', this.value)"
+                                        class="w-full h-2 bg-stone-100 rounded-lg"
+                                    />
+                                </div>
+                                <!-- Moods -->
+                                <div class="space-y-3">
+                                    <p class="text-[10px] font-bold text-stone-400 uppercase tracking-widest px-1">Vibe Check</p>
+                                    <div class="flex gap-2">
+                                        ${moodHtml}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            // Restore focus
+            if(activeId) {
+                const el = document.getElementById(activeId);
+                if(el) {
+                    el.focus();
+                    if(cursorLoc !== null) el.setSelectionRange(cursorLoc, cursorLoc);
+                }
+            }
+        }
+
+        function renderAnalytics() {
+            if (!dailyLog.hours) return;
+
+            const logs = Object.values(dailyLog.hours);
+            const filledTasks = logs.filter(l => l.task && l.task.trim().length > 0).length;
+            const productivity = Math.round((filledTasks / HOURS.length) * 100);
+            
+            const totalStress = logs.reduce((acc, l) => acc + (l.stress || 1), 0);
+            const avgStress = (totalStress / logs.length).toFixed(1);
+            
+            const moodCounts = logs.reduce((acc, l) => {
+                const m = l.mood || 'neutral';
+                acc[m] = (acc[m] || 0) + 1;
+                return acc;
+            }, {});
+
+            // Update Text Stats
+            document.getElementById('stat-productivity').innerText = `${productivity}%`;
+            document.getElementById('stat-tension').innerText = avgStress;
+
+            // Render Dots for Tension
+            const dotsContainer = document.getElementById('tension-dots');
+            dotsContainer.innerHTML = [1,2,3,4,5].map(i => 
+                `<div class="w-1.5 h-1.5 rounded-full ${i <= Math.round(avgStress) ? 'bg-rose-400' : 'bg-rose-100'}"></div>`
+            ).join('');
+
+            // Render Pie Chart
+            renderPieChart(moodCounts, logs.length);
+        }
+
+        function renderPieChart(moodCounts, total) {
+            const chartEl = document.getElementById('mood-pie-chart');
+            if (total === 0) {
+                chartEl.style.background = '#e7e5e4'; // Empty gray
+                return;
+            }
+
+            let gradientStr = '';
+            let currentPercent = 0;
+            const segments = [];
+
+            Object.keys(moodCounts).forEach(mood => {
+                const count = moodCounts[mood];
+                const percent = (count / total) * 100;
+                const color = moodColors[mood] || '#e7e5e4';
+                
+                segments.push(`${color} ${currentPercent}% ${currentPercent + percent}%`);
+                currentPercent += percent;
+            });
+
+            chartEl.style.background = `conic-gradient(${segments.join(', ')})`;
+        }
+
+        // --- EVENT HANDLERS (Manual Attachments) ---
+        document.getElementById('btn-food').addEventListener('click', toggleFood);
+        
+        // Init Data Load
+        loadData();
+
+    </script>
+</body>
+</html>
