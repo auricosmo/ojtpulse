@@ -36,24 +36,17 @@
     <style>
         body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         
-        /* Custom Range Slider */
         input[type='range'] { -webkit-appearance: none; background: transparent; }
         input[type='range']::-webkit-slider-thumb {
             -webkit-appearance: none; appearance: none; width: 18px; height: 18px;
             background: var(--thumb-color, #77B42B); border-radius: 50%; border: 3px solid white;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); cursor: pointer; transition: background 0.1s ease; margin-top: -5px; 
         }
-        input[type='range']::-webkit-slider-runnable-track {
-            width: 100%; height: 6px; cursor: pointer; background: #f5f5f4; border-radius: 9999px;
-        }
+        input[type='range']::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #f5f5f4; border-radius: 9999px; }
         input[type='range']::-moz-range-thumb {
-            width: 18px; height: 18px; background: var(--thumb-color, #77B42B); 
-            border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            cursor: pointer; transition: background 0.1s ease;
+            width: 18px; height: 18px; background: var(--thumb-color, #77B42B); border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); cursor: pointer; transition: background 0.1s ease;
         }
-        input[type='range']::-moz-range-track {
-            width: 100%; height: 6px; cursor: pointer; background: #f5f5f4; border-radius: 9999px;
-        }
+        input[type='range']::-moz-range-track { width: 100%; height: 6px; cursor: pointer; background: #f5f5f4; border-radius: 9999px; }
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -61,35 +54,20 @@
         .fade-in-init { animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .pie-chart {
-            width: 60px; height: 60px; border-radius: 50%; background: #f5f5f4; position: relative;
-        }
-        .pie-chart::after {
-            content: ""; position: absolute; inset: 15px; background: rgba(255, 255, 255, 0.9);
-            border-radius: 50%; backdrop-filter: blur(4px);
-        }
+        .pie-chart { width: 60px; height: 60px; border-radius: 50%; background: #f5f5f4; position: relative; }
+        .pie-chart::after { content: ""; position: absolute; inset: 15px; background: rgba(255, 255, 255, 0.9); border-radius: 50%; backdrop-filter: blur(4px); }
 
         .cal-dot { width: 4px; height: 4px; border-radius: 50%; margin-top: 2px; }
-        
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .calendar-day { 
-            aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            font-size: 0.75rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; position: relative;
-        }
+        .calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.75rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; position: relative; }
         .calendar-day:hover:not(.active) { background-color: #f5f5f4; }
         .calendar-day.active { background-color: #77B42B; color: white; font-weight: bold; }
         .calendar-day.today { border: 1px solid #77B42B; color: #77B42B; }
         .calendar-day.empty { pointer-events: none; }
 
-        /* Auth Screen - Matcha Texture */
         .auth-overlay {
-            position: absolute; inset: 0;
-            background-color: #FDFCF8;
-            /* Soft Matcha Textures */
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(119, 180, 43, 0.08) 0%, transparent 20%),
-                radial-gradient(circle at 90% 80%, rgba(95, 144, 34, 0.08) 0%, transparent 20%),
-                radial-gradient(circle at 50% 50%, #ffffff 0%, #f7f9f4 100%);
+            position: absolute; inset: 0; background-color: #FDFCF8;
+            background-image: radial-gradient(circle at 10% 20%, rgba(119, 180, 43, 0.08) 0%, transparent 20%), radial-gradient(circle at 90% 80%, rgba(95, 144, 34, 0.08) 0%, transparent 20%);
             backdrop-filter: blur(8px); z-index: 60; display: flex; align-items: center; justify-content: center;
         }
     </style>
@@ -102,7 +80,6 @@
         <div class="absolute bottom-[-10%] left-[20%] w-[60%] h-[40%] rounded-full bg-rose-100/30 blur-[120px]"></div>
     </div>
 
-    <!-- Loading -->
     <div id="loading" class="fixed inset-0 z-50 flex items-center justify-center bg-stone-50 transition-opacity duration-500">
         <div class="flex flex-col items-center gap-4">
             <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-matcha-500"></div>
@@ -113,25 +90,14 @@
     <!-- Auth Overlay -->
     <div id="auth-screen" class="hidden auth-overlay">
         <div class="bg-white/80 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-xl border border-white/60 text-center max-w-sm mx-4 fade-in-init relative overflow-hidden">
-            <!-- Decorative circle behind logo -->
-            <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-matcha-50/50 to-transparent pointer-events-none"></div>
-            
             <div class="relative z-10 w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 text-matcha-600 shadow-md border border-matcha-100">
                 <i data-lucide="refresh-cw" class="w-10 h-10"></i>
             </div>
-            
             <div class="relative z-10">
                 <h2 class="text-2xl font-black text-stone-800 mb-2 tracking-tight">Sync your progress</h2>
                 <p class="text-stone-500 text-sm mb-8 leading-relaxed">Sign in to securely track your attendance and OJT logs across all your devices.</p>
-                
                 <button id="btn-login-google" class="w-full py-3.5 bg-white hover:bg-stone-50 text-stone-700 font-bold rounded-2xl transition-all shadow-md hover:shadow-lg border border-stone-200 flex items-center justify-center gap-3 group active:scale-95">
-                    <!-- Official Google SVG -->
-                    <svg class="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.04-3.71 1.04-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                    </svg>
+                    <svg class="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.04-3.71 1.04-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
                     <span class="group-hover:text-stone-900 transition-colors">Continue with Google</span>
                 </button>
             </div>
@@ -140,7 +106,7 @@
 
     <div id="app" class="relative z-10 opacity-0 transition-opacity duration-500">
         <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-white/60 shadow-sm shadow-stone-200/5 mb-6">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+            <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="p-2 bg-gradient-to-br from-matcha-200 to-matcha-100 rounded-xl shadow-inner">
                         <i data-lucide="brain" class="text-matcha-600 w-5 h-5"></i>
@@ -155,9 +121,7 @@
                         <img id="user-avatar" src="" alt="User" class="w-6 h-6 rounded-full bg-stone-200" />
                         <span id="user-name-display" class="text-xs font-bold text-stone-600 pr-1 max-w-[60px] truncate hidden sm:block"></span>
                     </div>
-                    <button id="btn-logout" class="p-2 hover:bg-rose-50 rounded-xl text-stone-400 hover:text-rose-500 transition-colors" title="Logout">
-                        <i data-lucide="log-out" class="w-5 h-5"></i>
-                    </button>
+                    <button id="btn-logout" class="p-2 hover:bg-rose-50 rounded-xl text-stone-400 hover:text-rose-500 transition-colors" title="Logout"><i data-lucide="log-out" class="w-5 h-5"></i></button>
                     <div id="big-clock" class="text-lg font-black text-stone-700 tracking-tight bg-white/50 px-3 py-1.5 rounded-xl border border-white/60 shadow-sm flex items-center gap-1.5 hidden sm:flex min-w-[100px] justify-center">
                         <span>--:--</span><span class="text-xs text-stone-400 font-medium">AM</span>
                     </div>
@@ -165,8 +129,93 @@
             </div>
         </header>
 
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 fade-in-init grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <aside class="lg:col-span-4 space-y-6 lg:order-2 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto no-scrollbar">
+        <main class="max-w-[1600px] mx-auto px-4 sm:px-6 relative z-10 fade-in-init grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- LEFT COLUMN: Vitals & Scratchpad (lg:col-span-3) -->
+            <aside class="lg:col-span-3 space-y-6 lg:sticky lg:top-24 order-2 lg:order-1 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto no-scrollbar">
+                
+                <!-- Vitals -->
+                <div class="bg-white/70 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-white/60 space-y-4">
+                    <h3 class="font-bold text-stone-700 text-sm mb-2 flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-4 h-4 text-stone-400"></i> Daily Vitals</h3>
+                    
+                    <div class="p-3 bg-stone-50/50 rounded-2xl border border-stone-100/50">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <div class="p-1.5 bg-white rounded-lg text-stone-500 shadow-sm"><i data-lucide="calendar-check" class="w-3.5 h-3.5"></i></div>
+                                <span class="text-xs font-bold text-stone-600">Attendance</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="btn-att-present" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-matcha-600 group">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 mb-1"></i><span class="text-[9px] font-bold uppercase">Present</span>
+                            </button>
+                            <button id="btn-att-halfday" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-amber-600 group">
+                                <i data-lucide="hourglass" class="w-4 h-4 mb-1"></i><span class="text-[9px] font-bold uppercase">Half</span>
+                            </button>
+                            <button id="btn-att-absent" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-rose-600 group">
+                                <i data-lucide="x-circle" class="w-4 h-4 mb-1"></i><span class="text-[9px] font-bold uppercase">Absent</span>
+                            </button>
+                            <button id="btn-att-off" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-stone-600 group">
+                                <i data-lucide="coffee" class="w-4 h-4 mb-1"></i><span class="text-[9px] font-bold uppercase">Off</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 bg-rose-50/50 rounded-2xl border border-rose-100/50">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-white rounded-xl text-rose-500 shadow-sm"><i data-lucide="heart" class="w-4 h-4"></i></div>
+                            <span class="text-xs font-bold text-rose-700">Tension</span>
+                        </div>
+                        <div class="text-right">
+                            <span id="stat-tension" class="text-xl font-black text-stone-800">1.0</span>
+                            <div class="flex gap-0.5 justify-end" id="tension-dots"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 bg-violet-50/50 rounded-2xl border border-violet-100/50">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-white rounded-xl text-violet-500 shadow-sm"><i data-lucide="smile" class="w-4 h-4"></i></div>
+                            <span class="text-xs font-bold text-violet-700">Top Vibe</span>
+                        </div>
+                        <div id="mood-pie-chart" class="pie-chart w-10 h-10 shadow-sm"></div>
+                    </div>
+                </div>
+
+                <!-- Scratchpad -->
+                <div class="bg-amber-50/80 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-amber-100/50">
+                    <h3 class="font-bold text-amber-800 text-sm mb-2 flex items-center gap-2"><i data-lucide="sticky-note" class="w-4 h-4 text-amber-500"></i> Quick Scratchpad</h3>
+                    <textarea id="scratchpad" class="w-full bg-white/50 border-none rounded-xl p-3 text-sm text-stone-600 placeholder-amber-800/30 focus:ring-2 focus:ring-amber-200 focus:bg-white transition-all resize-none h-48 no-scrollbar leading-relaxed" placeholder="Jot down quick notes..."></textarea>
+                </div>
+            </aside>
+
+            <!-- CENTER COLUMN: Timeline (lg:col-span-6) -->
+            <section class="lg:col-span-6 space-y-6 order-1 lg:order-2">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+                    <div>
+                        <h2 class="text-3xl font-black text-stone-800 tracking-tight flex items-center gap-2">
+                            Hi, <span id="welcome-name">Student</span>
+                        </h2>
+                        <div class="flex items-center gap-2 mt-1">
+                            <button id="btn-prev-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                            <div class="relative group cursor-pointer">
+                                <span id="roadmap-title" class="text-stone-500 font-medium text-sm hover:text-matcha-600 transition-colors">Today's Roadmap</span>
+                                <input type="date" id="date-picker-input" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                            </div>
+                            <button id="btn-next-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                    <button id="btn-food" class="flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-white text-stone-600 hover:bg-stone-50 border border-stone-100 w-full sm:w-auto justify-between sm:justify-start">
+                        <div class="flex items-center gap-2"><i data-lucide="coffee" id="icon-food" class="w-4 h-4 text-stone-400 transition-colors duration-300"></i><span class="font-bold text-xs">Yummy Food?</span></div>
+                        <div id="toggle-food-bg" class="w-10 h-6 rounded-full relative transition-colors duration-300 bg-stone-200">
+                            <div id="toggle-food-dot" class="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 translate-x-1"></div>
+                        </div>
+                    </button>
+                </div>
+                <div id="timeline-container" class="space-y-4 pb-20"></div>
+            </section>
+
+            <!-- RIGHT COLUMN: Progress & Calendar (lg:col-span-3) -->
+            <aside class="lg:col-span-3 space-y-6 lg:sticky lg:top-24 order-3 lg:order-3 lg:self-start">
                 
                 <!-- Progress -->
                 <div class="bg-white/70 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-white/60 relative group">
@@ -207,87 +256,7 @@
                         <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-stone-400"></div>O</div>
                     </div>
                 </div>
-
-                <!-- Vitals -->
-                <div class="bg-white/70 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-white/60 space-y-4">
-                    <h3 class="font-bold text-stone-700 text-sm mb-2 flex items-center gap-2">
-                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-stone-400"></i> Daily Vitals
-                    </h3>
-                    <div class="p-3 bg-stone-50/50 rounded-2xl border border-stone-100/50">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center gap-2">
-                                <div class="p-1.5 bg-white rounded-lg text-stone-500 shadow-sm"><i data-lucide="calendar-check" class="w-3.5 h-3.5"></i></div>
-                                <span class="text-xs font-bold text-stone-600">Attendance</span>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-4 gap-2">
-                            <button id="btn-att-present" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-matcha-600 group">
-                                <i data-lucide="check-circle-2" class="w-4 h-4 mb-1"></i><span class="text-[9px] font-bold uppercase">Present</span>
-                            </button>
-                            <button id="btn-att-halfday" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-amber-600 group">
-                                <i data-lucide="hourglass" class="w-4 h-4 mb-1"></i><span class="text-[9px] font-bold uppercase">Half Day</span>
-                            </button>
-                            <button id="btn-att-absent" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-rose-600 group">
-                                <i data-lucide="x-circle" class="w-4 h-4 mb-1"></i><span class="text-[9px] font-bold uppercase">Absent</span>
-                            </button>
-                            <button id="btn-att-off" class="flex flex-col items-center justify-center p-2 rounded-xl border border-transparent hover:bg-white hover:shadow-sm transition-all text-stone-400 hover:text-stone-600 group">
-                                <i data-lucide="coffee" class="w-4 h-4 mb-1"></i><span class="text-[9px] font-bold uppercase">Off</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-rose-50/50 rounded-2xl border border-rose-100/50">
-                        <div class="flex items-center gap-3">
-                            <div class="p-2 bg-white rounded-xl text-rose-500 shadow-sm"><i data-lucide="heart" class="w-4 h-4"></i></div>
-                            <span class="text-xs font-bold text-rose-700">Tension</span>
-                        </div>
-                        <div class="text-right">
-                            <span id="stat-tension" class="text-xl font-black text-stone-800">1.0</span>
-                            <div class="flex gap-0.5 justify-end" id="tension-dots"></div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-violet-50/50 rounded-2xl border border-violet-100/50">
-                        <div class="flex items-center gap-3">
-                            <div class="p-2 bg-white rounded-xl text-violet-500 shadow-sm"><i data-lucide="smile" class="w-4 h-4"></i></div>
-                            <span class="text-xs font-bold text-violet-700">Top Vibe</span>
-                        </div>
-                        <div id="mood-pie-chart" class="pie-chart w-10 h-10 shadow-sm"></div>
-                    </div>
-                </div>
-
-                <div class="bg-amber-50/80 backdrop-blur-md p-5 rounded-[1.5rem] shadow-sm border border-amber-100/50">
-                    <h3 class="font-bold text-amber-800 text-sm mb-2 flex items-center gap-2">
-                        <i data-lucide="sticky-note" class="w-4 h-4 text-amber-500"></i> Quick Scratchpad
-                    </h3>
-                    <textarea id="scratchpad" class="w-full bg-white/50 border-none rounded-xl p-3 text-sm text-stone-600 placeholder-amber-800/30 focus:ring-2 focus:ring-amber-200 focus:bg-white transition-all resize-none h-32 no-scrollbar leading-relaxed" placeholder="Jot down quick notes..."></textarea>
-                </div>
             </aside>
-
-            <section class="lg:col-span-8 lg:order-1 space-y-6">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
-                    <div>
-                        <h2 class="text-3xl font-black text-stone-800 tracking-tight flex items-center gap-2">
-                            Hi, <span id="welcome-name">Student</span>
-                        </h2>
-                        <div class="flex items-center gap-2 mt-1">
-                            <button id="btn-prev-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
-                            <div class="relative group cursor-pointer">
-                                <span id="roadmap-title" class="text-stone-500 font-medium text-sm hover:text-matcha-600 transition-colors">Today's Roadmap</span>
-                                <input type="date" id="date-picker-input" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                            </div>
-                            <button id="btn-next-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
-                        </div>
-                    </div>
-                    <button id="btn-food" class="flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-white text-stone-600 hover:bg-stone-50 border border-stone-100 w-full sm:w-auto justify-between sm:justify-start">
-                        <div class="flex items-center gap-2"><i data-lucide="coffee" id="icon-food" class="w-4 h-4 text-stone-400 transition-colors duration-300"></i><span class="font-bold text-xs">Yummy Food?</span></div>
-                        <div id="toggle-food-bg" class="w-10 h-6 rounded-full relative transition-colors duration-300 bg-stone-200">
-                            <div id="toggle-food-dot" class="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 translate-x-1"></div>
-                        </div>
-                    </button>
-                </div>
-                <div id="timeline-container" class="space-y-4 pb-20"></div>
-            </section>
         </main>
     </div>
 
@@ -356,10 +325,10 @@
 
         // --- STATE ---
         let currentUser = null;
-        let selectedDate = new Date(); // Local device time
+        let selectedDate = new Date();
         let currentMonth = new Date(); 
         let dailyLog = {};
-        let userName = localStorage.getItem('ojt_pulse_username') || 'Student';
+        let userName = 'Student';
         let ojtSettings = { startDate: '', totalHours: 600 };
         let allLogsCache = {};
         let scratchTimeout;
@@ -387,7 +356,6 @@
         const elUserAvatar = document.getElementById('user-avatar');
         const elUserNameDisplay = document.getElementById('user-name-display');
         const elWelcomeName = document.getElementById('welcome-name');
-        
         const modalSettings = document.getElementById('modal-settings');
 
         // --- HELPER FUNCTIONS ---
@@ -463,7 +431,7 @@
 
         // --- AUTH ---
         onAuthStateChanged(auth, async (user) => {
-            lucide.createIcons(); // Ensure icons load even on auth screen
+            lucide.createIcons();
             if (user) {
                 currentUser = user;
                 elAuthScreen.classList.add('hidden');
@@ -776,6 +744,44 @@
                 const el = document.getElementById(activeId);
                 if(el) { el.focus(); if(cursorLoc !== null) el.setSelectionRange(cursorLoc, cursorLoc); }
             }
+        }
+
+        function renderAnalytics() {
+            if (!dailyLog.hours) return;
+            const logs = Object.values(dailyLog.hours);
+            const totalStress = logs.reduce((acc, l) => acc + (l.stress || 1), 0);
+            const avgStress = (totalStress / logs.length).toFixed(1);
+            const moodCounts = logs.reduce((acc, l) => {
+                const m = l.mood || 'neutral';
+                acc[m] = (acc[m] || 0) + 1;
+                return acc;
+            }, {});
+
+            if(elStatTension) elStatTension.innerText = avgStress;
+            if(elTensionDots) {
+                elTensionDots.innerHTML = [1,2,3,4,5].map(i => {
+                    const isActive = i <= Math.round(avgStress);
+                    const colorClass = isActive ? 'bg-rose-400' : 'bg-rose-100';
+                    return `<div class="w-1.5 h-1.5 rounded-full ${colorClass}"></div>`;
+                }).join('');
+            }
+            renderPieChart(moodCounts, logs.length);
+            renderAttendanceState();
+        }
+
+        function renderPieChart(moodCounts, total) {
+            if(!elMoodPie) return;
+            if (total === 0) { elMoodPie.style.background = '#e7e5e4'; return; }
+            let currentPercent = 0;
+            const segments = [];
+            Object.keys(moodCounts).forEach(mood => {
+                const count = moodCounts[mood];
+                const percent = (count / total) * 100;
+                const color = moodColors[mood] || '#e7e5e4';
+                segments.push(`${color} ${currentPercent}% ${currentPercent + percent}%`);
+                currentPercent += percent;
+            });
+            elMoodPie.style.background = `conic-gradient(${segments.join(', ')})`;
         }
 
         // --- LISTENERS ---
