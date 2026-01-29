@@ -27,20 +27,6 @@
                         rose: { 50: '#FFF1F2', 100: '#FFE4E6', 500: '#F43F5E', 600: '#E11D48' },
                         violet: { 50: '#F5F3FF', 100: '#EDE9FE', 500: '#8B5CF6', 600: '#7C3AED' },
                         stone: { 50: '#fafaf9', 100: '#f5f5f4', 200: '#e7e5e4', 300: '#d6d3d1', 400: '#a8a29e', 500: '#78716c', 600: '#57534e', 700: '#44403c', 800: '#292524', 900: '#1c1917' },
-                        amber: { 400: '#fbbf24', 500: '#f59e0b' }
-                    },
-                    keyframes: {
-                        wave: {
-                            '0%': { transform: 'rotate(0deg)' },
-                            '20%': { transform: 'rotate(14deg)' },
-                            '40%': { transform: 'rotate(-8deg)' },
-                            '60%': { transform: 'rotate(14deg)' },
-                            '80%': { transform: 'rotate(-4deg)' },
-                            '100%': { transform: 'rotate(10deg)' },
-                        }
-                    },
-                    animation: {
-                        wave: 'wave 2.5s infinite',
                     }
                 }
             }
@@ -55,52 +41,50 @@
         input[type='range']::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 20px;
-            height: 20px;
-            background: #77B42B; /* Matcha 500 */
+            width: 18px; /* Smaller thumb */
+            height: 18px;
+            background: #77B42B;
             border-radius: 50%;
-            border: 4px solid white;
-            box-shadow: 0 4px 6px rgba(119, 180, 43, 0.3);
+            border: 3px solid white;
+            box-shadow: 0 2px 4px rgba(119, 180, 43, 0.3);
             cursor: pointer;
             transition: all 0.2s;
-            margin-top: -6px; /* Align thumb */
+            margin-top: -5px; 
         }
         input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.1); }
         input[type='range']::-webkit-slider-runnable-track {
             width: 100%;
-            height: 8px;
+            height: 6px; /* Thinner track */
             cursor: pointer;
             background: #f5f5f4;
             border-radius: 9999px;
         }
         
-        /* Hide scrollbar for clean UI */
+        /* Hide scrollbar */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Smooth transitions */
         .fade-in { animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Pie Chart Styles */
         .pie-chart {
-            width: 80px;
-            height: 80px;
+            width: 60px; /* Smaller chart */
+            height: 60px;
             border-radius: 50%;
-            background: #f5f5f4; /* Fallback */
+            background: #f5f5f4;
             position: relative;
         }
         .pie-chart::after {
             content: "";
             position: absolute;
-            inset: 20px;
+            inset: 15px;
             background: rgba(255, 255, 255, 0.9);
             border-radius: 50%;
             backdrop-filter: blur(4px);
         }
     </style>
 </head>
-<body class="bg-[#FDFCF8] text-stone-800 font-sans min-h-screen relative selection:bg-matcha-200 selection:text-matcha-600 pb-32">
+<body class="bg-[#FDFCF8] text-stone-800 font-sans min-h-screen relative selection:bg-matcha-200 selection:text-matcha-600 pb-20">
 
     <!-- Fixed Ambient Background -->
     <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
@@ -121,131 +105,129 @@
     <div id="app" class="relative z-10 opacity-0 transition-opacity duration-500">
         
         <!-- Header -->
-        <header class="sticky top-4 z-40 mx-4 sm:mx-8 mb-8">
-            <div class="bg-white/70 backdrop-blur-xl border border-white/40 px-6 py-4 rounded-[2rem] shadow-lg shadow-stone-200/5 flex items-center justify-between max-w-4xl mx-auto">
-                <div class="flex items-center gap-4">
-                    <div class="p-2.5 bg-gradient-to-br from-matcha-200 to-matcha-100 rounded-2xl shadow-inner">
-                        <i data-lucide="brain" class="text-matcha-600 w-6 h-6"></i>
+        <header class="sticky top-2 z-40 mx-4 sm:mx-8 mb-6 transition-all">
+            <div class="bg-white/80 backdrop-blur-xl border border-white/40 px-5 py-3 rounded-[1.5rem] shadow-lg shadow-stone-200/5 flex items-center justify-between max-w-4xl mx-auto">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-gradient-to-br from-matcha-200 to-matcha-100 rounded-xl shadow-inner">
+                        <i data-lucide="brain" class="text-matcha-600 w-5 h-5"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-black text-stone-800 leading-none tracking-tight">OJT Pulse</h1>
-                        
+                        <h1 class="text-base font-black text-stone-800 leading-none tracking-tight">OJT Pulse</h1>
                         <!-- Date Navigation -->
-                        <div class="flex items-center gap-2 mt-1">
-                            <button id="btn-prev-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors" title="Previous Day">
-                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                        <div class="flex items-center gap-1 mt-0.5">
+                            <button id="btn-prev-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors">
+                                <i data-lucide="chevron-left" class="w-3 h-3"></i>
                             </button>
                             <div class="relative group cursor-pointer">
-                                <div id="current-date-display" class="text-[11px] font-bold text-stone-500 uppercase tracking-widest hover:text-matcha-600 transition-colors border-b border-transparent hover:border-matcha-300">
+                                <div id="current-date-display" class="text-[10px] font-bold text-stone-500 uppercase tracking-widest hover:text-matcha-600 transition-colors">
                                     Today
                                 </div>
-                                <!-- Native Date Picker Overlay -->
                                 <input type="date" id="date-picker-input" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
                             </div>
-                            <button id="btn-next-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors" title="Next Day">
-                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            <button id="btn-next-day" class="p-0.5 hover:bg-stone-100 rounded-md text-stone-400 hover:text-matcha-600 transition-colors">
+                                <i data-lucide="chevron-right" class="w-3 h-3"></i>
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <div id="big-clock" class="text-xl sm:text-2xl font-black text-stone-700 tracking-tight bg-white/50 px-5 py-2 rounded-2xl border border-white/60 shadow-sm flex items-center gap-2">
+                <div class="flex items-center">
+                    <div id="big-clock" class="text-lg sm:text-2xl font-black text-stone-700 tracking-tight bg-white/50 px-4 py-1.5 rounded-xl border border-white/60 shadow-sm flex items-center gap-1.5">
                         <span>--:--</span>
-                        <span class="text-sm text-stone-400 font-medium">AM</span>
+                        <span class="text-xs text-stone-400 font-medium">AM</span>
                     </div>
                 </div>
             </div>
         </header>
 
-        <main class="max-w-4xl mx-auto px-4 sm:px-8 space-y-8 relative z-10">
+        <!-- Main Content Area with increased side padding (px-6) for breathing room -->
+        <main class="max-w-4xl mx-auto px-6 sm:px-8 space-y-6 relative z-10">
             
-            <!-- Welcome Section -->
-            <section class="bg-gradient-to-br from-[#f2f7ec] via-[#fdfcf8] to-[#ffffff] p-8 rounded-[3rem] shadow-xl shadow-stone-200/50 border border-white/60 relative overflow-hidden group">
-                <div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <!-- Welcome Section (Compact) -->
+            <section class="bg-gradient-to-br from-[#f2f7ec] via-[#fdfcf8] to-[#ffffff] p-6 rounded-[2rem] shadow-xl shadow-stone-200/50 border border-white/60 relative overflow-hidden group">
+                <div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
-                        <h2 class="text-3xl font-black text-stone-800 mb-2 tracking-tight flex items-center gap-2">
+                        <h2 class="text-2xl font-black text-stone-800 mb-1 tracking-tight flex items-center gap-2">
                             Hi, 
                             <input 
                                 type="text" 
                                 id="user-display-name" 
                                 value="Student"
-                                class="bg-transparent border-b-2 border-dashed border-matcha-300 focus:border-matcha-500 outline-none text-stone-800 placeholder-stone-400 min-w-[100px] w-auto transition-colors p-0 m-0"
+                                class="bg-transparent border-b-2 border-dashed border-matcha-300 focus:border-matcha-500 outline-none text-stone-800 placeholder-stone-400 min-w-[80px] w-auto transition-colors p-0 m-0"
                             />
                             <span class="inline-block animate-wave origin-bottom-right">👋</span>
                         </h2>
-                        <p class="text-stone-500 font-medium text-lg max-w-md">Let's make today productive and balanced. Don't forget to hydrate!</p>
+                        <p class="text-stone-500 font-medium text-sm max-w-xs">Let's make today productive.</p>
                     </div>
                     
-                    <button id="btn-food" class="flex items-center gap-4 pl-5 pr-2 py-2 rounded-[1.5rem] transition-all duration-300 shadow-md bg-white text-stone-600 hover:bg-stone-50 border border-stone-100">
-                        <div class="flex items-center gap-3">
-                            <i data-lucide="coffee" id="icon-food" class="w-5 h-5 text-stone-400 transition-colors duration-300"></i>
-                            <span class="font-bold text-sm">Delicious Food?</span>
+                    <button id="btn-food" class="flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-white text-stone-600 hover:bg-stone-50 border border-stone-100 w-full sm:w-auto justify-between sm:justify-start">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="coffee" id="icon-food" class="w-4 h-4 text-stone-400 transition-colors duration-300"></i>
+                            <span class="font-bold text-xs">Yummy Food?</span>
                         </div>
-                        <div id="toggle-food-bg" class="w-12 h-8 rounded-full relative transition-colors duration-300 bg-stone-200">
-                            <div id="toggle-food-dot" class="absolute top-1 w-6 h-6 rounded-full bg-white shadow-sm transition-all duration-300 translate-x-1"></div>
+                        <div id="toggle-food-bg" class="w-10 h-6 rounded-full relative transition-colors duration-300 bg-stone-200">
+                            <div id="toggle-food-dot" class="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 translate-x-1"></div>
                         </div>
                     </button>
                 </div>
-                <i data-lucide="wind" class="absolute -bottom-8 -right-8 text-matcha-200/30 w-64 h-64 -rotate-12 transition-transform duration-700 group-hover:rotate-0"></i>
+                <!-- Reduced icon size -->
+                <i data-lucide="wind" class="absolute -bottom-6 -right-6 text-matcha-200/30 w-32 h-32 -rotate-12"></i>
             </section>
 
-            <!-- Analytics Grid -->
-            <section class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <!-- Analytics Grid (Compact 2x2 on Mobile) -->
+            <section class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <!-- Productivity -->
-                <div class="bg-sky-50/60 backdrop-blur-md p-6 rounded-[2.5rem] shadow-lg shadow-sky-100/50 border border-sky-100/50 flex flex-col items-center justify-center text-center h-48 group hover:bg-sky-50 transition-colors duration-300">
-                    <div class="p-4 bg-white rounded-3xl text-sky-500 shadow-sm mb-4 group-hover:scale-110 transition-transform">
-                        <i data-lucide="zap" class="w-8 h-8"></i>
+                <div class="bg-sky-50/60 backdrop-blur-md p-4 rounded-[1.5rem] shadow-sm border border-sky-100/50 flex flex-col items-center justify-center text-center">
+                    <div class="p-2 bg-white rounded-xl text-sky-500 shadow-sm mb-2">
+                        <i data-lucide="zap" class="w-5 h-5"></i>
                     </div>
                     <div>
-                        <h4 id="stat-productivity" class="text-4xl font-black text-stone-800">0%</h4>
-                        <p class="text-[10px] font-bold text-sky-400 uppercase tracking-widest mt-2">Productivity</p>
+                        <h4 id="stat-productivity" class="text-2xl font-black text-stone-800">0%</h4>
+                        <p class="text-[9px] font-bold text-sky-400 uppercase tracking-widest">Productivity</p>
                     </div>
                 </div>
                 
                 <!-- Tension -->
-                <div class="bg-rose-50/60 backdrop-blur-md p-6 rounded-[2.5rem] shadow-lg shadow-rose-100/50 border border-rose-100/50 flex flex-col items-center justify-center text-center h-48 group hover:bg-rose-50 transition-colors duration-300">
-                    <div class="p-4 bg-white rounded-3xl text-rose-500 shadow-sm mb-4 group-hover:scale-110 transition-transform">
-                        <i data-lucide="heart" class="w-8 h-8"></i>
+                <div class="bg-rose-50/60 backdrop-blur-md p-4 rounded-[1.5rem] shadow-sm border border-rose-100/50 flex flex-col items-center justify-center text-center">
+                    <div class="p-2 bg-white rounded-xl text-rose-500 shadow-sm mb-2">
+                        <i data-lucide="heart" class="w-5 h-5"></i>
                     </div>
                     <div>
-                        <h4 id="stat-tension" class="text-4xl font-black text-stone-800">1.0</h4>
-                        <div class="flex gap-1.5 justify-center mt-2" id="tension-dots">
-                            <!-- JS Generated Dots -->
-                        </div>
+                        <h4 id="stat-tension" class="text-2xl font-black text-stone-800">1.0</h4>
+                        <div class="flex gap-1 justify-center mt-1" id="tension-dots"></div>
                     </div>
-                    <p class="text-[10px] font-bold text-rose-400 uppercase tracking-widest mt-1">Avg Tension</p>
+                    <p class="text-[9px] font-bold text-rose-400 uppercase tracking-widest mt-1">Tension</p>
                 </div>
 
-                <!-- Vibe (Pie Chart) -->
-                <div class="bg-violet-50/60 backdrop-blur-md p-6 rounded-[2.5rem] shadow-lg shadow-violet-100/50 border border-violet-100/50 flex flex-col items-center justify-center text-center h-48 group hover:bg-violet-50 transition-colors duration-300">
-                    <div class="mb-3 relative flex items-center justify-center">
+                <!-- Vibe (Pie Chart) - Spans full width on very small screens if needed, but 2 col works -->
+                <div class="col-span-2 sm:col-span-1 bg-violet-50/60 backdrop-blur-md p-4 rounded-[1.5rem] shadow-sm border border-violet-100/50 flex flex-row sm:flex-col items-center justify-center text-center gap-4 sm:gap-0">
+                    <div class="relative flex items-center justify-center">
                         <div id="mood-pie-chart" class="pie-chart shadow-sm"></div>
-                        <i data-lucide="smile" class="w-6 h-6 text-violet-500 absolute z-10"></i>
+                        <i data-lucide="smile" class="w-5 h-5 text-violet-500 absolute z-10"></i>
                     </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-violet-400 uppercase tracking-widest mt-1">Mood Mix</p>
+                    <div class="text-left sm:text-center">
+                        <h4 class="text-lg font-bold text-stone-700">Mood Mix</h4>
+                        <p class="text-[9px] font-bold text-violet-400 uppercase tracking-widest">Daily Overview</p>
                     </div>
                 </div>
             </section>
 
-            <!-- Timeline Actions -->
-            <div class="flex items-center justify-between px-4">
-                <h3 class="text-xl font-black text-stone-800 flex items-center gap-3">
+            <!-- Timeline Header -->
+            <div class="flex items-center justify-between px-2">
+                <h3 class="text-lg font-black text-stone-800 flex items-center gap-2">
                     <span class="w-2 h-2 bg-matcha-500 rounded-full shadow-[0_0_10px_rgba(119,180,43,0.5)]"></span>
-                    <span id="roadmap-title">Today's Roadmap</span>
+                    <span id="roadmap-title">Roadmap</span>
                 </h3>
             </div>
 
             <!-- Timeline Container -->
-            <div id="timeline-container" class="pb-12">
+            <div id="timeline-container" class="pb-12 space-y-4">
                 <!-- Timeline items injected via JS -->
             </div>
 
             <!-- Footer -->
-            <footer class="pt-10 text-center text-stone-400 text-sm">
-                <p class="font-semibold opacity-50 mb-1">ID: <span id="user-id-display">Local</span></p>
-                <p class="opacity-70">© <span id="year"></span> OJT Pulse • Crafted for well-being</p>
+            <footer class="pt-6 text-center text-stone-400 text-xs">
+                <p class="opacity-70">© <span id="year"></span> OJT Pulse</p>
             </footer>
         </main>
     </div>
@@ -265,13 +247,9 @@
             { emoji: '🔥', label: 'On Fire', value: 'productive' }
         ];
         
-        // Mood Colors for Pie Chart
         const moodColors = {
-            'happy': '#77B42B', // matcha-500
-            'neutral': '#a8a29e', // stone-400
-            'stressed': '#F43F5E', // rose-500
-            'tired': '#8B5CF6', // violet-500
-            'productive': '#F59E0B' // amber-500
+            'happy': '#77B42B', 'neutral': '#a8a29e', 'stressed': '#F43F5E',
+            'tired': '#8B5CF6', 'productive': '#F59E0B'
         };
 
         const WEATHER = [
@@ -282,7 +260,7 @@
         ];
 
         // --- STATE ---
-        let selectedDate = new Date(); // Defaults to today
+        let selectedDate = new Date();
         let dailyLog = {};
         let userName = localStorage.getItem('ojt_pulse_username') || 'Student';
 
@@ -291,10 +269,8 @@
         const elLoading = document.getElementById('loading');
         const elTimeline = document.getElementById('timeline-container');
         const elYear = document.getElementById('year');
-        const elUserId = document.getElementById('user-id-display');
         const elUserDisplayName = document.getElementById('user-display-name');
         
-        // Date Controls
         const elPrevDay = document.getElementById('btn-prev-day');
         const elNextDay = document.getElementById('btn-next-day');
         const elDateDisplay = document.getElementById('current-date-display');
@@ -303,16 +279,13 @@
 
         // --- INITIALIZATION ---
         elYear.innerText = new Date().getFullYear();
-        elUserId.innerText = 'Guest';
         elUserDisplayName.value = userName;
 
-        // Save username listener
         elUserDisplayName.addEventListener('input', (e) => {
             userName = e.target.value;
             localStorage.setItem('ojt_pulse_username', userName);
         });
 
-        // Date Picker Listeners
         elPrevDay.addEventListener('click', () => changeDate(-1));
         elNextDay.addEventListener('click', () => changeDate(1));
         elDatePicker.addEventListener('change', (e) => {
@@ -322,36 +295,26 @@
             }
         });
 
-        // Helper: Format date as YYYY-MM-DD for storage key
-        function formatDateKey(date) {
-            return date.toISOString().split('T')[0];
-        }
-
-        // Helper: Format date for display
+        function formatDateKey(date) { return date.toISOString().split('T')[0]; }
         function formatDateDisplay(date) {
             const today = new Date();
             const todayStr = formatDateKey(today);
             const dateStr = formatDateKey(date);
-
-            // Reset time parts for comparison
             const yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayStr = formatDateKey(yesterday);
 
             if (dateStr === todayStr) return "Today";
             if (dateStr === yesterdayStr) return "Yesterday";
-            
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
 
         function changeDate(days) {
             selectedDate.setDate(selectedDate.getDate() + days);
-            // Update picker value to match internal state
             elDatePicker.value = formatDateKey(selectedDate);
             loadData();
         }
 
-        // Clock
         function updateClock() {
             const now = new Date();
             let hours = now.getHours();
@@ -360,9 +323,8 @@
             hours = hours % 12;
             hours = hours ? hours : 12; 
             const strTime = hours + ':' + (minutes < 10 ? '0' + minutes : minutes);
-            
             const clockEl = document.getElementById('big-clock');
-            clockEl.innerHTML = `<span>${strTime}</span><span class="text-sm text-stone-400 font-medium">${ampm}</span>`;
+            clockEl.innerHTML = `<span>${strTime}</span><span class="text-xs text-stone-400 font-medium">${ampm}</span>`;
         }
         setInterval(updateClock, 1000);
         updateClock(); 
@@ -371,13 +333,11 @@
              const keyDate = formatDateKey(selectedDate);
              const key = `ojt_pulse_${keyDate}`;
              
-             // Update UI for Date
              elDateDisplay.innerText = formatDateDisplay(selectedDate);
              elDatePicker.value = keyDate;
              
-             // Update Roadmap Title
              const displayDate = formatDateDisplay(selectedDate);
-             elRoadmapTitle.innerText = displayDate === "Today" ? "Today's Roadmap" : `Roadmap for ${displayDate}`;
+             elRoadmapTitle.innerText = displayDate === "Today" ? "Today's Roadmap" : `${displayDate}`;
 
              const stored = localStorage.getItem(key);
              if (stored) {
@@ -388,8 +348,6 @@
                     deliciousFood: false,
                     hours: HOURS.reduce((acc, h) => ({ ...acc, [h]: { task: '', stress: 1, mood: 'neutral', weather: 'Sunny' } }), {})
                 };
-                // We don't save immediately on load if empty to save space, but saving here ensures structure exists
-                // saveData(); 
              }
              renderUI();
              showApp();
@@ -399,7 +357,7 @@
             const keyDate = formatDateKey(selectedDate);
             const key = `ojt_pulse_${keyDate}`;
             localStorage.setItem(key, JSON.stringify(dailyLog));
-            renderUI(); // Re-render primarily for analytics updates
+            renderUI();
         }
 
         function showApp() {
@@ -410,7 +368,6 @@
             }, 300);
         }
 
-        // --- UPDATES ---
         window.updateHour = (hour, field, value) => {
             if (!dailyLog.hours) return;
             if (field === 'stress') value = parseInt(value);
@@ -423,7 +380,6 @@
             saveData();
         };
 
-        // --- RENDERERS ---
         function renderUI() {
             renderFoodButton();
             renderTimeline();
@@ -438,18 +394,17 @@
             const icon = document.getElementById('icon-food');
             const isActive = dailyLog.deliciousFood;
 
+            // Updated colors for active state
             if (isActive) {
-                btn.className = 'flex items-center gap-4 pl-5 pr-2 py-2 rounded-[1.5rem] transition-all duration-300 shadow-md bg-matcha-500 text-white shadow-matcha-200/50 hover:bg-matcha-600 border border-matcha-500';
-                
+                btn.className = 'flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-matcha-500 text-white shadow-matcha-200/50 hover:bg-matcha-600 border border-matcha-500 w-full sm:w-auto justify-between sm:justify-start';
                 bg.classList.remove('bg-stone-200');
                 bg.classList.add('bg-white/20');
                 dot.classList.remove('translate-x-1');
-                dot.classList.add('translate-x-5');
+                dot.classList.add('translate-x-5'); // Adjusted for smaller button
                 icon.classList.remove('text-stone-400');
                 icon.classList.add('text-white');
             } else {
-                btn.className = 'flex items-center gap-4 pl-5 pr-2 py-2 rounded-[1.5rem] transition-all duration-300 shadow-md bg-white text-stone-600 hover:bg-stone-50 border border-stone-100';
-                
+                btn.className = 'flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-[1.2rem] transition-all duration-300 shadow-sm bg-white text-stone-600 hover:bg-stone-50 border border-stone-100 w-full sm:w-auto justify-between sm:justify-start';
                 bg.classList.add('bg-stone-200');
                 bg.classList.remove('bg-white/20');
                 dot.classList.add('translate-x-1');
@@ -466,19 +421,7 @@
                 cursorLoc = document.activeElement.selectionStart;
             }
 
-            const examples = [
-                "Coding a new feature",
-                "Reading documentation",
-                "Team stand-up meeting",
-                "Debugging an issue",
-                "Client call",
-                "Code review",
-                "Coffee break ☕",
-                "Updating task board",
-                "Learning a new tool",
-                "Refactoring code",
-                "Writing emails"
-            ];
+            const examples = ["Coding", "Docs", "Meeting", "Debug", "Call", "Review", "Break ☕", "Planning", "Learning", "Email"];
 
             elTimeline.innerHTML = HOURS.map((hour, index) => {
                 const data = dailyLog.hours?.[hour] || {};
@@ -491,8 +434,8 @@
                         : 'text-stone-300 hover:text-stone-400';
                     return `
                         <button onclick="updateHour('${hour}', 'weather', '${w.label}')" 
-                            class="p-2 rounded-lg transition-all ${classes}" title="${w.label}">
-                            <i data-lucide="${w.icon}" class="w-4 h-4"></i>
+                            class="p-1.5 rounded-lg transition-all ${classes}" title="${w.label}">
+                            <i data-lucide="${w.icon}" class="w-3.5 h-3.5"></i>
                         </button>
                     `;
                 }).join('');
@@ -504,7 +447,7 @@
                         : 'bg-stone-50 text-stone-300 hover:bg-stone-100 hover:text-stone-500';
                     return `
                         <button onclick="updateHour('${hour}', 'mood', '${m.value}')" 
-                            class="w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all duration-200 ${classes}" 
+                            class="w-9 h-9 rounded-xl flex items-center justify-center text-base transition-all duration-200 ${classes}" 
                             title="${m.label}">
                             ${m.emoji}
                         </button>
@@ -516,18 +459,18 @@
                 const placeholder = `e.g. ${examples[index % examples.length]}`;
 
                 return `
-                <div class="group relative pb-6 transition-all fade-in">
-                    <div class="w-full bg-white/60 backdrop-blur-md p-6 rounded-[2rem] shadow-sm border border-white/60 transition-all duration-300 hover:bg-white/80 hover:shadow-xl hover:shadow-matcha-200/20 ${isActive ? 'ring-1 ring-matcha-200' : ''}">
-                        <div class="flex flex-col gap-5">
+                <div class="group relative fade-in">
+                    <div class="w-full bg-white/70 backdrop-blur-md p-5 rounded-[1.8rem] shadow-sm border border-white/60 transition-all duration-300 hover:bg-white/90 hover:shadow-lg hover:shadow-matcha-200/10 ${isActive ? 'ring-1 ring-matcha-200' : ''}">
+                        <div class="flex flex-col gap-4">
                             <div class="flex items-center justify-between">
-                                <span class="text-3xl font-black text-stone-700 tracking-tight">${hour}</span>
-                                <div class="flex gap-1.5 p-1.5 bg-stone-100/50 rounded-xl">
+                                <span class="text-2xl font-black text-stone-700 tracking-tight">${hour}</span>
+                                <div class="flex gap-1 p-1 bg-stone-100/50 rounded-lg">
                                     ${weatherHtml}
                                 </div>
                             </div>
 
-                            <div class="space-y-2">
-                                <label for="input-${hour}" class="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">What are you doing?</label>
+                            <div class="space-y-1.5">
+                                <label for="input-${hour}" class="text-[9px] font-bold text-stone-400 uppercase tracking-widest ml-1">Activity</label>
                                 <div class="relative group/input">
                                     <input 
                                         id="input-${hour}"
@@ -535,30 +478,30 @@
                                         placeholder="${placeholder}"
                                         value="${data.task || ''}"
                                         onchange="updateHour('${hour}', 'task', this.value)"
-                                        class="w-full bg-stone-50/50 hover:bg-white border border-stone-200/50 rounded-2xl px-5 py-4 text-stone-700 placeholder:text-stone-400 focus:ring-2 focus:ring-matcha-400/30 focus:bg-white focus:border-matcha-200 transition-all outline-none font-medium"
+                                        class="w-full bg-stone-50/50 hover:bg-white border border-stone-200/50 rounded-2xl px-4 py-3 text-sm text-stone-700 placeholder:text-stone-400 focus:ring-2 focus:ring-matcha-400/30 focus:bg-white focus:border-matcha-200 transition-all outline-none font-medium"
                                     />
-                                    <div class="absolute right-4 top-4 transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}">
-                                        <i data-lucide="check-circle-2" class="w-6 h-6 text-matcha-500 fill-matcha-100"></i>
+                                    <div class="absolute right-4 top-3.5 transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}">
+                                        <i data-lucide="check-circle-2" class="w-5 h-5 text-matcha-500 fill-matcha-100"></i>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="flex flex-col lg:flex-row gap-6 pt-2">
-                                <div class="flex-1 space-y-3">
+                            <div class="flex flex-col lg:flex-row gap-4 pt-1">
+                                <div class="flex-1 space-y-2">
                                     <div class="flex justify-between items-center px-1">
-                                        <span class="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Stress</span>
-                                        <span class="text-xs font-bold px-2 py-0.5 rounded-md ${stressColor}">${stressVal} / 5</span>
+                                        <span class="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Stress</span>
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md ${stressColor}">${stressVal} / 5</span>
                                     </div>
                                     <input 
                                         type="range" min="1" max="5" step="1"
                                         value="${stressVal}"
                                         onchange="updateHour('${hour}', 'stress', this.value)"
-                                        class="w-full h-2 bg-stone-100 rounded-lg"
+                                        class="w-full h-1.5 bg-stone-100 rounded-lg"
                                     />
                                 </div>
-                                <div class="space-y-3">
-                                    <p class="text-[10px] font-bold text-stone-400 uppercase tracking-widest px-1">Vibe Check</p>
-                                    <div class="flex gap-2">
+                                <div class="space-y-2">
+                                    <p class="text-[9px] font-bold text-stone-400 uppercase tracking-widest px-1">Vibe</p>
+                                    <div class="flex gap-1.5">
                                         ${moodHtml}
                                     </div>
                                 </div>
@@ -580,14 +523,11 @@
 
         function renderAnalytics() {
             if (!dailyLog.hours) return;
-
             const logs = Object.values(dailyLog.hours);
             const filledTasks = logs.filter(l => l.task && l.task.trim().length > 0).length;
             const productivity = Math.round((filledTasks / HOURS.length) * 100);
-            
             const totalStress = logs.reduce((acc, l) => acc + (l.stress || 1), 0);
             const avgStress = (totalStress / logs.length).toFixed(1);
-            
             const moodCounts = logs.reduce((acc, l) => {
                 const m = l.mood || 'neutral';
                 acc[m] = (acc[m] || 0) + 1;
@@ -599,7 +539,7 @@
 
             const dotsContainer = document.getElementById('tension-dots');
             dotsContainer.innerHTML = [1,2,3,4,5].map(i => 
-                `<div class="w-1.5 h-1.5 rounded-full ${i <= Math.round(avgStress) ? 'bg-rose-400' : 'bg-rose-100'}"></div>`
+                `<div class="w-1 h-1 rounded-full ${i <= Math.round(avgStress) ? 'bg-rose-400' : 'bg-rose-100'}"></div>`
             ).join('');
 
             renderPieChart(moodCounts, logs.length);
@@ -611,24 +551,19 @@
                 chartEl.style.background = '#e7e5e4'; 
                 return;
             }
-
             let currentPercent = 0;
             const segments = [];
-
             Object.keys(moodCounts).forEach(mood => {
                 const count = moodCounts[mood];
                 const percent = (count / total) * 100;
                 const color = moodColors[mood] || '#e7e5e4';
-                
                 segments.push(`${color} ${currentPercent}% ${currentPercent + percent}%`);
                 currentPercent += percent;
             });
-
             chartEl.style.background = `conic-gradient(${segments.join(', ')})`;
         }
 
         document.getElementById('btn-food').addEventListener('click', toggleFood);
-        
         loadData();
 
     </script>
