@@ -244,8 +244,14 @@
                 document.getElementById('intro-toast').classList.remove('hidden');
             }
 
+            // Helper to get local YYYY-MM-DD
+            function getLocalISODate(date) {
+                const offset = date.getTimezoneOffset() * 60000; 
+                return new Date(date.getTime() - offset).toISOString().split('T')[0];
+            }
+
             function loadData() {
-                const key = selectedDate.toISOString().split('T')[0];
+                const key = getLocalISODate(selectedDate);
                 const stored = localStorage.getItem('ojt_pulse_' + key);
                 
                 dailyLog = stored ? JSON.parse(stored) : { 
@@ -264,7 +270,7 @@
             }
 
             function saveDaily() {
-                const key = selectedDate.toISOString().split('T')[0];
+                const key = getLocalISODate(selectedDate);
                 localStorage.setItem('ojt_pulse_' + key, JSON.stringify(dailyLog));
                 renderUI(); renderCalendar(); updateProgress();
             }
@@ -330,10 +336,8 @@
             };
 
             function renderAnalytics() {
-                if (!dailyLog.hours) return;
                 const logs = Object.values(dailyLog.hours);
-                const totalStress = logs.reduce((acc, l) => acc + (l.stress || 1), 0);
-                const avgStress = (logs.length > 0 ? totalStress / logs.length : 1).toFixed(1);
+                const avgStress = (logs.reduce((a,l)=>a+(l.stress||1),0)/logs.length).toFixed(1);
                 document.getElementById('stat-tension').innerText = isNaN(avgStress) ? '1.0' : avgStress;
                 
                 const counts = logs.reduce((a, l) => { a[l.mood]=(a[l.mood]||0)+1; return a; }, {});
@@ -350,10 +354,13 @@
             function updateProgress() {
                 let hrs = 0;
                 Object.keys(localStorage).forEach(k => {
-                    if(k.startsWith('ojt_pulse_')) {
-                        const d = JSON.parse(localStorage.getItem(k));
-                        if(d.attendance === 'present') hrs += 8;
-                        if(d.attendance === 'halfday') hrs += 4;
+                    // Strictly check key format to avoid settings keys
+                    if(k.match(/^ojt_pulse_\d{4}-\d{2}-\d{2}$/)) {
+                        try {
+                            const d = JSON.parse(localStorage.getItem(k));
+                            if(d.attendance === 'present') hrs += 8;
+                            if(d.attendance === 'halfday') hrs += 4;
+                        } catch(e) { console.error("Bad log", k); }
                     }
                 });
                 const p = Math.min(100, Math.round((hrs / ojtSettings.totalHours) * 100)) || 0;
@@ -362,9 +369,13 @@
                 document.getElementById('progress-bar').style.width = p + '%';
                 
                 if(ojtSettings.startDate) {
-                    const start = new Date(ojtSettings.startDate), now = new Date();
-                    const diff = Math.ceil((now - start) / (1000 * 60 * 60 * 24));
-                    document.getElementById('progress-days').innerText = `Day ${diff}`;
+                    const startParts = ojtSettings.startDate.split('-');
+                    const start = new Date(startParts[0], startParts[1]-1, startParts[2]);
+                    const now = new Date();
+                    const nowZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    const diff = Math.ceil((nowZero - start) / (1000 * 60 * 60 * 24));
+                    const dayNum = diff + 1; // 0 diff = day 1
+                    document.getElementById('progress-days').innerText = dayNum > 0 ? `Day ${dayNum}` : `Starts in ${Math.abs(diff)} days`;
                 }
             }
 
@@ -376,8 +387,9 @@
                 cal.innerHTML = '';
                 for(let i=0; i<first; i++) cal.innerHTML += '<div></div>';
                 for(let d=1; d<=days; d++) {
-                    const key = new Date(year, month, d).toISOString().split('T')[0];
-                    const active = key === selectedDate.toISOString().split('T')[0];
+                    // Generate local date string for key
+                    const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    const active = key === getLocalISODate(selectedDate);
                     const stored = localStorage.getItem('ojt_pulse_'+key);
                     const data = stored ? JSON.parse(stored) : null;
                     const el = document.createElement('div');
@@ -398,7 +410,13 @@
             document.getElementById('btn-next-day').onclick = () => { selectedDate.setDate(selectedDate.getDate()+1); loadData(); };
             document.getElementById('btn-cal-prev').onclick = () => { currentMonth.setMonth(currentMonth.getMonth()-1); renderCalendar(); };
             document.getElementById('btn-cal-next').onclick = () => { currentMonth.setMonth(currentMonth.getMonth()+1); renderCalendar(); };
-            document.getElementById('date-picker-input').onchange = (e) => { if(e.target.value) { selectedDate = new Date(e.target.value); loadData(); }};
+            document.getElementById('date-picker-input').onchange = (e) => { 
+                if(e.target.value) { 
+                    const parts = e.target.value.split('-');
+                    selectedDate = new Date(parts[0], parts[1]-1, parts[2]);
+                    loadData(); 
+                }
+            };
             
             document.getElementById('btn-settings').onclick = () => {
                 document.getElementById('setting-start-date').value = ojtSettings.startDate;
@@ -406,6 +424,12 @@
                 document.getElementById('modal-settings').classList.remove('hidden');
             };
             document.getElementById('btn-close-settings').onclick = () => document.getElementById('modal-settings').classList.add('hidden');
+            document.getElementById('btn-save-settings').onclick = async () => {
+                ojtSettings = { startDate: document.getElementById('setting-start-date').value, totalHours: document.getElementById('setting-total-hours').value };
+                localStorage.setItem('ojt_pulse_settings', JSON.stringify(ojtSettings));
+                document.getElementById('modal-settings').classList.add('hidden'); updateProgress();
+            };
+
             document.getElementById('user-display-name').oninput = (e) => {
                 userName = e.target.value; localStorage.setItem('ojt_pulse_username', userName);
             };
@@ -455,6 +479,8 @@
                 document.getElementById('intro-toast').classList.add('hidden');
                 localStorage.setItem('ojt_pulse_seen_intro', 'true');
             };
+
+            document.getElementById('btn-food').onclick = window.toggleFood;
 
             setInterval(() => {
                 const n = new Date(); document.getElementById('big-clock').innerHTML = `<span>${n.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}).split(' ')[0]}</span><span class="text-xs text-stone-400">${n.toLocaleTimeString([], {hour12:true}).split(' ')[1]}</span>`;
