@@ -83,7 +83,10 @@
                     Your logs are saved in this browser's cache. 
                     <span class="font-bold text-amber-600">Clearing your browser history/cache will delete all your progress.</span>
                 </p>
-                <button id="btn-intro-gotit" class="text-xs font-bold text-stone-400 hover:text-stone-600 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors">Got it</button>
+                <div class="flex gap-2">
+                    <button id="btn-intro-gotit" class="text-xs font-bold text-stone-400 hover:text-stone-600 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors">Got it</button>
+                    <button id="btn-intro-backup" class="text-xs font-bold text-sky-600 bg-sky-50 hover:bg-sky-100 px-3 py-2 rounded-lg transition-colors">Download Backup</button>
+                </div>
             </div>
         </div>
     </div>
@@ -100,10 +103,16 @@
                         <p class="text-[10px] text-stone-400 font-bold uppercase tracking-widest mt-0.5" id="header-date">Today</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-4">
-                    <button id="btn-export-local" class="p-2 hover:bg-stone-100 rounded-xl text-stone-400 hover:text-sky-500 transition-colors" title="Export Backup">
+                <div class="flex items-center gap-3">
+                    <button id="btn-export-local" class="p-2 hover:bg-stone-100 rounded-xl text-stone-400 hover:text-sky-500 transition-colors" title="Download Backup">
                          <i data-lucide="download" class="w-5 h-5"></i>
                     </button>
+                    <button id="btn-import-local" class="p-2 hover:bg-stone-100 rounded-xl text-stone-400 hover:text-matcha-500 transition-colors" title="Restore Backup">
+                         <i data-lucide="upload" class="w-5 h-5"></i>
+                    </button>
+                    <!-- Hidden File Input -->
+                    <input type="file" id="file-input" class="hidden" accept=".json" />
+
                     <div id="big-clock" class="text-lg font-black text-stone-700 bg-white/50 px-3 py-1.5 rounded-xl border border-white/60 flex items-center gap-1.5">
                         <span>--:--</span><span class="text-xs text-stone-400">AM</span>
                     </div>
@@ -165,6 +174,7 @@
                         <div id="toggle-food-bg" class="w-8 h-4 rounded-full bg-stone-200 relative"><div id="toggle-food-dot" class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-all"></div></div>
                     </button>
                 </div>
+                <!-- TIMELINE -->
                 <div id="timeline-container" class="space-y-4 pb-20 min-h-[200px]"></div>
             </section>
 
@@ -243,7 +253,7 @@
                     hours: HOURS.reduce((a,h)=>({...a,[h]:{task:'',stress:1,mood:'neutral',weather:'Sunny'}}), {}) 
                 };
                 
-                // Ensure structure
+                // Ensure structure integrity even if loaded from old format
                 HOURS.forEach(h => { if(!dailyLog.hours[h]) dailyLog.hours[h] = {task:'',stress:1,mood:'neutral',weather:'Sunny'}; });
                 
                 document.getElementById('header-date').innerText = selectedDate.toLocaleDateString('en-US', {month:'short', day:'numeric'});
@@ -294,6 +304,8 @@
                         else cls += "bg-stone-200 text-stone-600 border-stone-300 shadow-sm";
                     } else cls += "bg-white text-stone-400 hover:bg-stone-50";
                     btn.className = cls;
+                    // FIX: Attach click listener here
+                    btn.onclick = () => window.updateAttendance(id);
                 });
 
                 const btnFood = document.getElementById('toggle-food-bg');
@@ -304,9 +316,24 @@
                 lucide.createIcons();
             }
 
+            // Expose logic to window
+            window.updateTask = (h, v) => { dailyLog.hours[h].task = v; saveDaily(); };
+            window.updateStress = (h, v) => { dailyLog.hours[h].stress = parseInt(v); saveDaily(); };
+            window.updateMood = (h, v) => { dailyLog.hours[h].mood = v; saveDaily(); };
+            window.updateWeather = (h, v) => { dailyLog.hours[h].weather = v; saveDaily(); };
+            window.updateAttendance = (s) => { dailyLog.attendance = s; saveDaily(); };
+            window.toggleFood = () => { dailyLog.deliciousFood = !dailyLog.deliciousFood; saveDaily(); };
+            window.saveSettings = () => {
+                ojtSettings = { startDate: document.getElementById('setting-start-date').value, totalHours: document.getElementById('setting-total-hours').value };
+                localStorage.setItem('ojt_pulse_settings', JSON.stringify(ojtSettings));
+                document.getElementById('modal-settings').classList.add('hidden'); updateProgress();
+            };
+
             function renderAnalytics() {
+                if (!dailyLog.hours) return;
                 const logs = Object.values(dailyLog.hours);
-                const avgStress = (logs.reduce((a,l)=>a+(l.stress||1),0)/logs.length).toFixed(1);
+                const totalStress = logs.reduce((acc, l) => acc + (l.stress || 1), 0);
+                const avgStress = (logs.length > 0 ? totalStress / logs.length : 1).toFixed(1);
                 document.getElementById('stat-tension').innerText = isNaN(avgStress) ? '1.0' : avgStress;
                 
                 const counts = logs.reduce((a, l) => { a[l.mood]=(a[l.mood]||0)+1; return a; }, {});
@@ -351,7 +378,8 @@
                 for(let d=1; d<=days; d++) {
                     const key = new Date(year, month, d).toISOString().split('T')[0];
                     const active = key === selectedDate.toISOString().split('T')[0];
-                    const data = JSON.parse(localStorage.getItem('ojt_pulse_'+key));
+                    const stored = localStorage.getItem('ojt_pulse_'+key);
+                    const data = stored ? JSON.parse(stored) : null;
                     const el = document.createElement('div');
                     el.className = `calendar-day ${active ? 'active' : ''}`;
                     el.innerHTML = `<span>${d}</span>`;
@@ -365,25 +393,13 @@
                 }
             }
 
-            // Expose logic to window
-            window.updateTask = (h, v) => { dailyLog.hours[h].task = v; saveDaily(); };
-            window.updateStress = (h, v) => { dailyLog.hours[h].stress = parseInt(v); saveDaily(); };
-            window.updateMood = (h, v) => { dailyLog.hours[h].mood = v; saveDaily(); };
-            window.updateWeather = (h, v) => { dailyLog.hours[h].weather = v; saveDaily(); };
-            window.updateAttendance = (s) => { dailyLog.attendance = s; saveDaily(); };
-            window.toggleFood = () => { dailyLog.deliciousFood = !dailyLog.deliciousFood; saveDaily(); };
-            window.saveSettings = () => {
-                ojtSettings = { startDate: document.getElementById('setting-start-date').value, totalHours: document.getElementById('setting-total-hours').value };
-                localStorage.setItem('ojt_pulse_settings', JSON.stringify(ojtSettings));
-                document.getElementById('modal-settings').classList.add('hidden'); updateProgress();
-            };
-
             // Event Listeners
             document.getElementById('btn-prev-day').onclick = () => { selectedDate.setDate(selectedDate.getDate()-1); loadData(); };
             document.getElementById('btn-next-day').onclick = () => { selectedDate.setDate(selectedDate.getDate()+1); loadData(); };
             document.getElementById('btn-cal-prev').onclick = () => { currentMonth.setMonth(currentMonth.getMonth()-1); renderCalendar(); };
             document.getElementById('btn-cal-next').onclick = () => { currentMonth.setMonth(currentMonth.getMonth()+1); renderCalendar(); };
             document.getElementById('date-picker-input').onchange = (e) => { if(e.target.value) { selectedDate = new Date(e.target.value); loadData(); }};
+            
             document.getElementById('btn-settings').onclick = () => {
                 document.getElementById('setting-start-date').value = ojtSettings.startDate;
                 document.getElementById('setting-total-hours').value = ojtSettings.totalHours;
@@ -397,10 +413,8 @@
                 clearTimeout(scratchTimeout);
                 scratchTimeout = setTimeout(() => localStorage.setItem('ojt_pulse_scratchpad', e.target.value), 1000);
             };
-            document.getElementById('btn-intro-gotit').onclick = () => {
-                document.getElementById('intro-toast').classList.add('hidden');
-                localStorage.setItem('ojt_pulse_seen_intro', 'true');
-            };
+            
+            // Backup Buttons
             document.getElementById('btn-export-local').onclick = () => {
                 const allData = {};
                 for (let i = 0; i < localStorage.length; i++) {
@@ -411,6 +425,35 @@
                 a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allData));
                 a.download = `OJT_Backup.json`;
                 a.click();
+            };
+            
+            document.getElementById('btn-import-local').onclick = () => document.getElementById('file-input').click();
+            
+            document.getElementById('file-input').onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        Object.keys(data).forEach(key => localStorage.setItem(key, JSON.stringify(data[key])));
+                        alert('Data restored successfully!');
+                        location.reload();
+                    } catch (err) {
+                        alert('Error reading backup file.');
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            document.getElementById('btn-intro-gotit').onclick = () => {
+                document.getElementById('intro-toast').classList.add('hidden');
+                localStorage.setItem('ojt_pulse_seen_intro', 'true');
+            };
+            document.getElementById('btn-intro-backup').onclick = () => {
+                document.getElementById('btn-export-local').click();
+                document.getElementById('intro-toast').classList.add('hidden');
+                localStorage.setItem('ojt_pulse_seen_intro', 'true');
             };
 
             setInterval(() => {
