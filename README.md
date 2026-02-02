@@ -2,13 +2,13 @@ OJT Pulse Tracker 🧠✨ https://auricosmo.github.io/ojtpulse/
 
 A beautiful, aesthetic, and privacy-focused web application designed for On-the-Job Training (OJT) students to track their hourly productivity, stress levels, and overall well-being.
 
-
+<br>
 
 🌟 Overview
 
 OJT Pulse Tracker is a client-side application that helps students maintain balance during their internship. It features a "Matcha & Latte" glassmorphism aesthetic, intuitive hourly logging, and real-time analytics—all running directly in your browser without the need for a server or account creation.
 
-
+<br>
 
 🚀 Key Features
 
@@ -36,7 +36,7 @@ Backup System: Export and Import your data as .json files to switch devices or c
 
 Mobile Optimized: A responsive layout that looks great on phones and desktops.
 
-
+<br>
 
 🛠️ Tech Stack
 
@@ -48,7 +48,7 @@ Icons: Lucide React (via CDN)
 
 Font: Inter (Google Fonts)
 
-
+<br>
 
 📦 How to Use
 
@@ -70,7 +70,7 @@ Open index.html in any modern web browser (Chrome, Edge, Safari).
 
 Start logging your day!
 
-
+<br>
 
 ⚠️ Important Note on Data
 
@@ -82,7 +82,7 @@ Clearing your browser history/cache will delete your logs.
 
 Recommendation: Use the Backup (Download Icon) button regularly to save your progress to your computer.
 
-
+<br>
 
 🎨 Customization
 
@@ -92,7 +92,7 @@ Primary Colors: Matcha, Sky, Rose, Violet.
 
 Backgrounds: Animated gradients found in the <body> tag.
 
-
+<br>
 
 📄 License
 
