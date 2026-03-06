@@ -37,7 +37,6 @@
             background-color: #F6F5F2; /* Soft creamy latte base */
         }
         
-        /* Glassmorphism Aesthetics */
         .glass-panel {
             background: rgba(255, 255, 255, 0.45);
             backdrop-filter: blur(20px);
@@ -56,7 +55,7 @@
         
         .glass-input:focus {
             background: rgba(255, 255, 255, 0.85);
-            border-color: #ADD280; /* Matcha glow */
+            border-color: #ADD280; 
             box-shadow: 0 0 0 3px rgba(173, 210, 128, 0.2), inset 0 2px 6px rgba(0, 0, 0, 0.02);
         }
         
@@ -137,26 +136,12 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
-                    <div id="user-profile" class="hidden items-center gap-2 px-3 py-1.5 glass-pill rounded-full">
-                        <img id="user-avatar" src="" class="w-7 h-7 rounded-full border border-white" />
-                        <span id="user-name-display" class="text-xs font-bold text-latte-800 pr-1 truncate max-w-[100px]"></span>
-                    </div>
-                    
-                    <div class="flex gap-2 border-r border-latte-300/50 pr-4 mr-2">
+                    <div class="flex gap-2 pr-2">
                         <button id="btn-export-local" class="p-2.5 glass-btn rounded-xl text-latte-500 hover:text-sky-600" title="Download Local Backup"><i data-lucide="download" class="w-4 h-4"></i></button>
                         <button id="btn-import-local" class="p-2.5 glass-btn rounded-xl text-latte-500 hover:text-matcha-600" title="Restore from JSON"><i data-lucide="upload" class="w-4 h-4"></i></button>
                         <input type="file" id="file-input" class="hidden" accept=".json" />
                     </div>
 
-                    <!-- Cloud Sync Button -->
-                    <button id="btn-auth-trigger" class="p-2.5 glass-btn rounded-xl text-latte-500 hover:text-sky-600" title="Sync / Login">
-                        <i data-lucide="cloud" class="w-4 h-4"></i>
-                    </button>
-                    
-                    <button id="btn-logout" class="hidden p-2.5 glass-btn rounded-xl text-latte-500 hover:text-rose-500" title="Logout">
-                        <i data-lucide="log-out" class="w-4 h-4"></i>
-                    </button>
-                    
                     <div id="big-clock" class="text-lg font-black text-latte-800 glass-pill px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm">
                         <span>--:--</span><span class="text-xs text-latte-500">AM</span>
                     </div>
@@ -205,9 +190,6 @@
                     <h2 class="text-2xl font-black flex items-center gap-2 text-latte-800 pl-2">
                         Hi, <input type="text" id="user-display-name" value="Student" class="bg-transparent border-b-2 border-dashed border-matcha-300 focus:border-matcha-500 outline-none text-stone-800 min-w-[80px] w-auto transition-colors p-0 m-0"/>
                     </h2>
-                    <button id="btn-food" class="glass-btn flex items-center gap-3 px-5 py-2.5 rounded-[1.5rem] text-xs font-bold text-latte-800">
-                        Yummy Food? <div id="toggle-food-bg" class="w-10 h-6 rounded-full glass-input relative transition-all border-none"><div id="toggle-food-dot" class="absolute top-1 left-0 w-4 h-4 rounded-full bg-stone-300 shadow-sm transition-all"></div></div>
-                    </button>
                 </div>
                 
                 <div class="flex items-center justify-between glass-panel p-3 rounded-[1.5rem]">
@@ -260,22 +242,6 @@
         </main>
     </div>
 
-    <!-- Login Modal -->
-    <div id="auth-modal" class="hidden auth-overlay">
-        <div class="glass-panel p-10 rounded-[2.5rem] text-center max-w-sm mx-4 relative overflow-hidden animate-[slideIn_0.3s_ease-out]">
-            <button id="btn-close-auth" class="absolute top-4 right-4 p-2 glass-btn rounded-full text-latte-500"><i data-lucide="x" class="w-5 h-5"></i></button>
-            <div class="w-20 h-20 bg-matcha-100/50 backdrop-blur-md rounded-3xl flex items-center justify-center mx-auto mb-6 border border-matcha-200 shadow-sm">
-                <i data-lucide="cloud" class="w-10 h-10 text-matcha-600"></i>
-            </div>
-            <h2 class="text-2xl font-black text-latte-800 mb-2">Sync to Cloud</h2>
-            <p class="text-latte-500 text-sm mb-8">Sign in to safely back up your local data across devices.</p>
-            <button id="btn-login-google" class="w-full py-4 glass-btn rounded-2xl font-bold text-latte-800 flex items-center justify-center gap-3 bg-white/80">
-                <svg class="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.04-3.71 1.04-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                <span>Continue with Google</span>
-            </button>
-        </div>
-    </div>
-
     <!-- Settings Modal -->
     <div id="modal-settings" class="hidden auth-overlay">
         <div class="glass-panel p-10 rounded-[2.5rem] w-full max-w-md relative animate-[slideIn_0.3s_ease-out]">
@@ -305,7 +271,7 @@
             </div>
             <div>
                 <h4 class="font-black text-latte-800 mb-1 tracking-tight text-lg">Local Data Mode</h4>
-                <p class="text-sm text-latte-600 leading-relaxed mb-4">Your logs are stored in your browser. Clearing your cache will delete them. Connect to cloud for safety.</p>
+                <p class="text-sm text-latte-600 leading-relaxed mb-4">Your logs are stored securely in your browser. Please remember that clearing your cache will delete them. Use the backup buttons to save your data.</p>
                 <div class="flex gap-2">
                     <button id="btn-intro-gotit" class="text-xs font-bold text-latte-500 glass-btn px-4 py-2.5 rounded-xl">Got it</button>
                     <button id="btn-intro-backup" class="text-xs font-bold text-matcha-700 bg-matcha-100/80 hover:bg-matcha-200/80 px-4 py-2.5 rounded-xl transition-colors border border-matcha-200">Backup Now</button>
@@ -314,7 +280,7 @@
         </div>
     </div>
 
-    <script type="module">
+    <script>
         const HOURS = ["07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"];
         const moodColors = { 'happy': '#77B42B', 'neutral': '#a8a29e', 'stressed': '#F43F5E', 'tired': '#8B5CF6', 'productive': '#F59E0B' };
         const stressColors = { 1: '#77B42B', 2: '#a3e635', 3: '#facc15', 4: '#fb923c', 5: '#ef4444' };
@@ -349,13 +315,13 @@
             
             dailyLog = stored ? JSON.parse(stored) : { 
                 date: key.replace('ojt_pulse_', ''), 
-                deliciousFood: false, attendance: 'absent', 
+                attendance: 'absent', 
                 hours: HOURS.reduce((a,h)=>({...a,[h]:{task:'',stress:1,mood:'neutral',weather:'Sunny'}}), {}) 
             };
             
             HOURS.forEach(h => { if(!dailyLog.hours[h]) dailyLog.hours[h] = {task:'',stress:1,mood:'neutral',weather:'Sunny'}; });
             
-            document.getElementById('header-date').innerText = selectedDate.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+            document.getElementById('header-date').innerText = new Date().toLocaleDateString('en-US', {month:'short', day:'numeric'});
             document.getElementById('roadmap-title').innerText = selectedDate.toLocaleDateString('en-US', {month:'short', day:'numeric'});
             document.getElementById('date-picker-input').value = key.replace('ojt_pulse_', '');
 
@@ -412,14 +378,6 @@
                 if (btn) { btn.className = cls; btn.onclick = () => window.updateAttendance(id); }
             });
 
-            const btnFoodBg = document.getElementById('toggle-food-bg');
-            const btnFoodDot = document.getElementById('toggle-food-dot');
-            if (btnFoodBg && btnFoodDot) {
-                btnFoodBg.className = dailyLog.deliciousFood ? "w-12 h-7 rounded-full bg-matcha-500 relative transition-colors shadow-inner border border-matcha-600/20" : "w-12 h-7 rounded-full glass-input border-none relative transition-colors";
-                btnFoodDot.style.left = dailyLog.deliciousFood ? "22px" : "4px";
-                btnFoodDot.className = dailyLog.deliciousFood ? "absolute top-1 left-0 w-5 h-5 rounded-full bg-white shadow-[0_2px_4px_rgba(0,0,0,0.1)] transition-all" : "absolute top-1 left-0 w-5 h-5 rounded-full bg-white shadow-[0_2px_4px_rgba(0,0,0,0.05)] transition-all";
-            }
-            
             renderAnalytics();
             if(window.lucide) lucide.createIcons();
         }
@@ -430,10 +388,8 @@
         window.updateMood = (h, v) => { dailyLog.hours[h].mood = v; saveDaily(); };
         window.updateWeather = (h, v) => { dailyLog.hours[h].weather = v; saveDaily(); };
         window.updateAttendance = (s) => { dailyLog.attendance = s; saveDaily(); };
-        window.toggleFood = () => { dailyLog.deliciousFood = !dailyLog.deliciousFood; saveDaily(); };
         window.changeDate = (d) => { selectedDate.setDate(selectedDate.getDate() + d); loadData(); };
 
-        safeSetClick('btn-food', window.toggleFood);
         safeSetClick('btn-prev-day', () => changeDate(-1));
         safeSetClick('btn-next-day', () => changeDate(1));
         safeSetClick('btn-cal-prev', () => { currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1); renderCalendar(); });
@@ -587,10 +543,6 @@
             const appEl = document.getElementById('app');
             if (appEl) appEl.classList.remove('opacity-0');
         }, 100);
-        setTimeout(() => {
-            const loadingEl = document.getElementById('loading');
-            if (loadingEl) loadingEl.classList.add('hidden');
-        }, 500);
 
         if (!localStorage.getItem('ojt_pulse_seen_intro')) {
             const introEl = document.getElementById('intro-toast');
