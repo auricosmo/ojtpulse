@@ -190,7 +190,7 @@
             let allLogsCache = {};
             let scratchTimeout;
 
-            // Utility to get local YYYY-MM-DD
+            // Utility to get local YYYY-MM-DD reliably
             function getLocalISODate(date) {
                 const offset = date.getTimezoneOffset() * 60000; 
                 return new Date(date.getTime() - offset).toISOString().split('T')[0];
@@ -213,35 +213,32 @@
             }
 
             function loadLocalLogs() {
-        // --- SAFE LISTENER HELPERS ---
-        const safeAddListener = (id, event, handler) => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener(event, handler);
-        };
-        const safeSetClick = (id, handler) => {
-            const el = document.getElementById(id);
-            if (el) el.onclick = handler;
-        };
+                allLogsCache = {}; // clear and rebuild
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('ojt_pulse_log_')) {
+                        const dateKey = key.replace('ojt_pulse_log_', '');
+                        try {
+                            allLogsCache[dateKey] = JSON.parse(localStorage.getItem(key));
+                        } catch(e) { console.error("Cache load error", e); }
+                    }
+                });
+            }
 
-        // --- LOCAL STORAGE HELPERS ---
-        function getLocalKey(date) { return 'ojt_pulse_' + getLocalISODate(date); }
-        
-        // --- CORE FUNCTIONS ---
-        function loadData() {
-                const key = getLocalISODate(selectedDate);
+            function loadData() {
+                const isoDate = getLocalISODate(selectedDate);
                 const displayDate = selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                 
                 document.getElementById('header-date').innerText = displayDate;
                 document.getElementById('roadmap-title').innerText = displayDate;
-                document.getElementById('date-picker-input').value = key;
+                document.getElementById('date-picker-input').value = isoDate;
                 
-                const localStored = localStorage.getItem('ojt_pulse_log_' + key);
+                const localStored = localStorage.getItem('ojt_pulse_log_' + isoDate);
                 
                 if (localStored) {
                     dailyLog = JSON.parse(localStored);
                 } else {
                     dailyLog = { 
-                        date: key, 
+                        date: isoDate, 
                         deliciousFood: false, 
                         attendance: 'absent', 
                         hours: HOURS.reduce((a,h)=>({...a,[h]:{task:'',stress:1,mood:'neutral',weather:'Sunny'}}), {}) 
@@ -254,13 +251,21 @@
                     if (!dailyLog.hours[h]) dailyLog.hours[h] = {task:'',stress:1,mood:'neutral',weather:'Sunny'}; 
                 });
 
+                // Automatically switch the calendar month view if the selected date falls outside the currently viewed month
+                if (currentMonth.getFullYear() !== selectedDate.getFullYear() || currentMonth.getMonth() !== selectedDate.getMonth()) {
+                    currentMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+                }
+
                 renderUI();
+                renderCalendar(); // Renders the calendar immediately so the newly clicked date highlights
+                updateProgress();
             }
 
             function saveDaily() { 
-                const key = getLocalISODate(selectedDate);
-                allLogsCache[key] = dailyLog; 
-                localStorage.setItem('ojt_pulse_log_' + key, JSON.stringify(dailyLog));
+                const isoDate = getLocalISODate(selectedDate);
+                allLogsCache[isoDate] = dailyLog; 
+                localStorage.setItem('ojt_pulse_log_' + isoDate, JSON.stringify(dailyLog));
+                
                 renderUI(); 
                 renderCalendar(); 
                 updateProgress();
@@ -375,48 +380,161 @@
             }
 
             function renderCalendar() {
-            const year = currentMonth.getFullYear(), month = currentMonth.getMonth();
-            document.getElementById('cal-month-year').innerText = currentMonth.toLocaleDateString('en-US', {month:'long', year:'numeric'});
-            const first = new Date(year, month, 1).getDay(), days = new Date(year, month+1, 0).getDate();
-            const cal = document.getElementById('mini-calendar');
-            cal.innerHTML = '';
-            for(let i=0; i<first; i++) cal.innerHTML += '<div></div>';
-            for(let d=1; d<=days; d++) {
-                const cellDate = new Date(year, month, d);
-                const key = getLocalKey(cellDate);
-                const active = key === getLocalKey(selectedDate);
-                const isToday = key === getLocalKey(new Date());
+                const year = currentMonth.getFullYear();
+                const month = currentMonth.getMonth();
                 
-                const stored = localStorage.getItem(key);
-                const data = stored ? JSON.parse(stored) : null;
-                const el = document.createElement('div');
+                document.getElementById('cal-month-year').innerText = currentMonth.toLocaleDateString('en-US', {month:'long', year:'numeric'});
                 
-                let cls = 'calendar-day transition-all duration-200';
-                if (active) {
-                    cls += ' active shadow-md scale-105';
-                } else if (isToday) {
-                    cls += ' today';
-                }
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month+1, 0).getDate();
+                const cal = document.getElementById('mini-calendar');
                 
-                el.className = cls;
-                el.innerHTML = `<span>${d}</span>`;
+                cal.innerHTML = '';
+                for(let i=0; i<firstDay; i++) cal.innerHTML += '<div></div>';
                 
-                if(data && data.attendance && data.attendance !== 'absent') {
-                    const dot = document.createElement('div');
-                    if (active) {
-                        dot.className = 'cal-dot bg-white';
-                    } else {
-                        dot.className = 'cal-dot ' + (data.attendance === 'present' ? 'bg-matcha-500' : (data.attendance === 'halfday' ? 'bg-amber-500' : 'bg-stone-400'));
+                for(let d=1; d<=daysInMonth; d++) {
+                    const cellDate = new Date(year, month, d);
+                    const isoDate = getLocalISODate(cellDate);
+                    
+                    const isSelected = isoDate === getLocalISODate(selectedDate);
+                    const isToday = isoDate === getLocalISODate(new Date());
+                    
+                    const data = allLogsCache[isoDate];
+                    const hasData = data && data.attendance && data.attendance !== 'absent';
+                    
+                    let dotHtml = '';
+                    if (hasData) {
+                        const status = data.attendance;
+                        // Force a white dot if the cell is currently actively selected (green background)
+                        const dotColor = isSelected ? 'bg-white' : (status === 'present' ? 'bg-matcha-500' : (status === 'halfday' ? 'bg-amber-500' : 'bg-stone-400'));
+                        dotHtml = `<div class="cal-dot ${dotColor}"></div>`;
                     }
-                    el.appendChild(dot);
-                }
-                
-                el.onclick = () => { selectedDate = new Date(year, month, d); loadData(); };
-                cal.appendChild(el);
-            }
-        }
 
-        setInterval(() => {
+                    const el = document.createElement('div');
+                    let classNames = 'calendar-day transition-all duration-200';
+                    
+                    if (isSelected) {
+                        classNames += ' active shadow-md scale-105';
+                    } else if (isToday) {
+                        classNames += ' today';
+                    }
+
+                    el.className = classNames;
+                    el.innerHTML = `<span>${d}</span>${dotHtml}`;
+                    
+                    // Clicking updates selectedDate and forces a full re-load and calendar re-render
+                    el.onclick = () => { 
+                        selectedDate = new Date(year, month, d); 
+                        loadData(); 
+                    };
+                    
+                    cal.appendChild(el);
+                }
+            }
+
+            // Expose globally for inline HTML events
+            window.updateTask = (h, v) => { dailyLog.hours[h].task = v; saveDaily(); };
+            window.updateStress = (h, v) => { dailyLog.hours[h].stress = parseInt(v); saveDaily(); };
+            window.updateMood = (h, v) => { dailyLog.hours[h].mood = v; saveDaily(); };
+            window.updateWeather = (h, v) => { dailyLog.hours[h].weather = v; saveDaily(); };
+            window.toggleFood = () => { dailyLog.deliciousFood = !dailyLog.deliciousFood; saveDaily(); };
+
+            // Event Listeners Registration
+            document.getElementById('btn-food').addEventListener('click', window.toggleFood);
+            
+            document.getElementById('btn-prev-day').addEventListener('click', () => { 
+                selectedDate.setDate(selectedDate.getDate() - 1); loadData(); 
+            });
+            document.getElementById('btn-next-day').addEventListener('click', () => { 
+                selectedDate.setDate(selectedDate.getDate() + 1); loadData(); 
+            });
+            
+            document.getElementById('date-picker-input').addEventListener('change', (e) => {
+                if(e.target.value) {
+                    const parts = e.target.value.split('-');
+                    selectedDate = new Date(parts[0], parts[1]-1, parts[2]);
+                    loadData();
+                }
+            });
+
+            document.getElementById('btn-cal-prev').addEventListener('click', () => { 
+                // Set to 1st of the month to prevent skipping issues on the 31st
+                currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+                renderCalendar(); 
+            });
+            document.getElementById('btn-cal-next').addEventListener('click', () => { 
+                currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+                renderCalendar(); 
+            });
+
+            // Settings 
+            document.getElementById('btn-settings').addEventListener('click', () => {
+                document.getElementById('setting-start-date').value = ojtSettings.startDate || '';
+                document.getElementById('setting-total-hours').value = ojtSettings.totalHours || 600;
+                document.getElementById('modal-settings').classList.remove('hidden');
+            });
+            
+            document.getElementById('btn-close-settings').addEventListener('click', () => {
+                document.getElementById('modal-settings').classList.add('hidden');
+            });
+            
+            document.getElementById('btn-save-settings').addEventListener('click', () => {
+                ojtSettings = { 
+                    startDate: document.getElementById('setting-start-date').value, 
+                    totalHours: document.getElementById('setting-total-hours').value 
+                };
+                localStorage.setItem('ojt_pulse_settings', JSON.stringify(ojtSettings));
+                document.getElementById('modal-settings').classList.add('hidden'); 
+                updateProgress();
+            });
+
+            // Personalization
+            document.getElementById('user-display-name').addEventListener('input', (e) => {
+                localStorage.setItem('ojt_pulse_username', e.target.value);
+            });
+            
+            document.getElementById('scratchpad').addEventListener('input', (e) => {
+                clearTimeout(scratchTimeout);
+                scratchTimeout = setTimeout(() => {
+                    localStorage.setItem('ojt_pulse_scratchpad', e.target.value);
+                }, 500);
+            });
+
+            // Export / Import Data
+            document.getElementById('btn-export-local').addEventListener('click', () => {
+                const allData = {};
+                Object.keys(localStorage).forEach(k => { 
+                    if(k.startsWith('ojt_pulse_')) allData[k] = localStorage.getItem(k); 
+                });
+                const a = document.createElement('a');
+                a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allData));
+                a.download = `OJT_Pulse_Backup_${getLocalISODate(new Date())}.json`;
+                a.click();
+            });
+            
+            document.getElementById('btn-import-local').addEventListener('click', () => {
+                document.getElementById('file-input').click();
+            });
+            
+            document.getElementById('file-input').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const r = new FileReader();
+                r.onload = (re) => {
+                    try {
+                        const d = JSON.parse(re.target.result);
+                        Object.keys(d).forEach(k => localStorage.setItem(k, d[k]));
+                        alert('Data successfully restored! Reloading application...');
+                        location.reload();
+                    } catch(err) { 
+                        alert('Error reading JSON file. Ensure it is a valid OJT Pulse backup.'); 
+                    }
+                };
+                r.readAsText(file);
+            });
+
+            // Clock
+            setInterval(() => {
                 const n = new Date(); 
                 document.getElementById('big-clock').innerHTML = `<span>${n.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}).split(' ')[0]}</span><span class="text-xs text-stone-400">${n.toLocaleTimeString([], {hour12:true}).split(' ')[1]}</span>`;
             }, 1000);
